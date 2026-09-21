@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="probe_a11y_description">Experiment only. Does nothing: it reads no screen content and handles no events. Used to test whether enabling an accessibility service changes microphone access during calls.</string>
+</resources>

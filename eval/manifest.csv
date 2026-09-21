@@ -1,0 +1,42 @@
+file,lang,expect,set,note
+hi1,hi,HIGH,dev,Devanagari OTP request
+hi2,hi,MEDIUM,dev,KYC expired + account blocked
+hi3,hi,HIGH,dev,CBI digital arrest + secrecy
+hi4,hi,HIGH,dev,AnyDesk install
+hi5,hi,MEDIUM,dev,SIM will be blocked
+hi6,hi,LOW,dev,normal talk
+hi7,hi,LOW,dev,advisory: never share your OTP
+hi8,hi,LOW,dev,lottery lure alone
+hg1,hinglish,HIGH,dev,Hinglish OTP request
+hg2,hinglish,MEDIUM,dev,Hinglish KYC/account block
+hg3,hinglish,HIGH,dev,Hinglish digital arrest
+hg4,hinglish,HIGH,dev,Hinglish AnyDesk
+hg5,hinglish,LOW,dev,normal talk
+hg6,hinglish,LOW,dev,advisory
+n1,hi,MEDIUM,dev,account block + KYC update
+n2,hi,HIGH,dev,police warrant + pay now
+n3,hi,HIGH,dev,ATM PIN and CVV request
+n4,hi,HIGH,dev,TeamViewer install
+n5,hi,LOW,dev,normal talk
+n6,hi,LOW,dev,advisory: bank never asks OTP
+n7,hinglish,MEDIUM,dev,account block + KYC
+n8,hinglish,HIGH,dev,police arrest warrant
+n9,hinglish,HIGH,dev,ATM PIN and CVV
+n10,hinglish,LOW,dev,normal talk
+n11,hinglish,LOW,dev,advisory: never share PIN
+n12,en,HIGH,dev,SIM deactivation + verification code
+n13,en,HIGH,dev,customs parcel drugs arrest
+n14,en,LOW,dev,normal talk
+en1,en,HIGH,dev,OTP immediately
+en2,en,MEDIUM,dev,KYC expired account blocked
+en3,en,HIGH,dev,AnyDesk
+en4,en,LOW,dev,normal talk
+en5,en,LOW,dev,advisory
+t1,te,HIGH,dev,Telugu OTP request
+t2,te,MEDIUM,dev,Telugu KYC expired + account block
+t3,te,HIGH,dev,Telugu CBI digital arrest + secrecy
+t4,te,HIGH,dev,Telugu AnyDesk
+t5,te,MEDIUM,dev,Telugu SIM block
+t6,te,LOW,dev,Telugu normal talk
+t7,te,LOW,dev,Telugu advisory
+t8,te,LOW,dev,Telugu lottery lure alone
