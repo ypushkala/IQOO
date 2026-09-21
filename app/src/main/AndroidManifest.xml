@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <!-- Optional: lets the caller-ID check know whether a number is a saved contact. Never uploaded. -->
+    <!-- Used only if the user turns on automatic family alerts on the consent screen; never requested otherwise. -->
+    <uses-permission android:name="android.permission.SEND_SMS" />
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Lets the setup screen ask the user to exempt CallGuard from battery optimisation (a system dialog the user confirms). -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <!-- No INTERNET permission on purpose: everything stays on-device. -->
+
+    <application
+        android:name=".CallGuardApp"
+        android:allowBackup="false"
+        android:label="CallGuard"
+        android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.share" android:exported="false" android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
+        </provider>
+        <activity android:name=".ui.MainActivity" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <!-- Caller-ID role: observes incoming-call numbers, always lets the call through. -->
+        <activity android:name=".ui.LanguagesActivity" android:exported="false" />
+        <activity android:name=".ui.SettingsActivity" android:exported="false" />
+        <activity android:name=".ui.RecoveryActivity" android:exported="false" />
+        <activity android:name=".ui.PracticeActivity" android:exported="false" />
+        <activity android:name=".ui.HelperActivity" android:exported="false" />
+        <!-- Exported only so a model pack (.zip) can be opened with CallGuard from the Files app or a chat. Files without CallGuard model contents are refused. -->
+        <activity android:name=".ui.ModelImportActivity" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" android:mimeType="application/zip" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/zip" />
+            </intent-filter>
+        </activity>
+        <activity android:name=".ui.FamilyAlertActivity" android:exported="false" />
+        <activity android:name=".ui.SetupActivity" android:exported="false" />
+        <service
+            android:name=".caller.CallerIdService"
+            android:exported="true"
+            android:permission="android.permission.BIND_SCREENING_SERVICE">
+            <intent-filter>
+                <action android:name="android.telecom.CallScreeningService" />
+            </intent-filter>
+        </service>
+        <receiver android:name=".caller.BootReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+        <service
+            android:name=".CallGuardService"
+            android:exported="false"
+            android:foregroundServiceType="microphone" />
+    </application>
+</manifest>

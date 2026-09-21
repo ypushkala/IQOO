@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- ONLINE BUILD ONLY. Used solely for the one-time model download and the scam-number list update, both started by the user.
+         Nothing about the user or their calls is sent. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <application>
+        <receiver android:name="com.callguard.models.ModelDownloadReceiver" android:exported="true">
+            <intent-filter><action android:name="android.intent.action.DOWNLOAD_COMPLETE" /></intent-filter>
+        </receiver>
+    </application>
+</manifest>

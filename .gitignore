@@ -1,0 +1,20 @@
+build/
+.gradle/
+.kotlin/
+local.properties
+.idea/
+.DS_Store
+# large binaries are published as release files, not committed (see tools/fetch_assets.sh)
+release-assets/
+models/
+app/libs/*.aar
+app/src/main/assets/asr/base-encoder.int8.onnx
+app/src/main/assets/asr/base-decoder.int8.onnx
+*.apk
+*.aab
+*.zip
+*.task
+*.pem
+*.jks
+*.keystore
+eval/reports/

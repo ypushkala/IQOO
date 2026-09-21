@@ -1,0 +1,13 @@
+# CallGuard offline prefix list: `prefix|weight|label`, prefix = international digits (no +), weight 1-5 risk points.
+#
+# SAMPLE DATA for the prototype, NOT an authoritative blocklist. It contains only country-code level
+# hints (calls from abroad are already +3 risk on their own) and no individual phone numbers. Replace
+# it with an authoritative, dated feed before any real use, and keep weights small: a number is
+# context, never proof, and it can never trigger an alert without suspicious words in the call.
+#
+# Country codes that Indian authorities / press have repeatedly warned about for unsolicited
+# international (often WhatsApp-style) scam calls. Provenance not verified here.
+92|2|country code often reported for scam calls
+84|2|country code often reported for scam calls
+62|2|country code often reported for scam calls
+60|1|country code often reported for scam calls
