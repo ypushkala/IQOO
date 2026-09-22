@@ -7,6 +7,8 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.provider.ContactsContract
+import android.view.Gravity
+import android.view.View
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import com.callguard.alert.AppPrefs
@@ -33,7 +35,7 @@ class FamilyAlertActivity : Activity() {
         super.onCreate(savedInstanceState)
         prefs = AppPrefs(this)
         theme = UiTheme(this, prefs.accessibility)
-        root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(theme.bg); setPadding(32, 48, 32, 32) }
+        root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(theme.bg); setPadding(32, 48, 32, 32) }.also { theme.avoidStatusBar(it) }
         setContentView(ScrollView(this).apply { setBackgroundColor(theme.bg); addView(root) })
         build()
     }
@@ -41,35 +43,65 @@ class FamilyAlertActivity : Activity() {
     private fun hasSms() = checkSelfPermission(Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED
     private val automaticOn get() = prefs.autoFamilyAlert && hasSms()
 
+    /** A chosen family contact: name, and a quiet "remove" tap — not a full-width button per contact. */
+    private fun contactRow(c: FamilyContact) = LinearLayout(this).apply {
+        orientation = LinearLayout.HORIZONTAL
+        gravity = Gravity.CENTER_VERTICAL
+        minimumHeight = theme.dp(48)
+        setPadding(theme.dp(4), theme.dp(8), theme.dp(4), theme.dp(8))
+        addView(theme.text(15f).apply { text = c.label; layoutParams = LinearLayout.LayoutParams(0, -2, 1f); setPadding(0, 0, 0, 0) })
+        addView(theme.text(13.5f, muted = true).apply {
+            text = UiStrings.get(Ui.FA_REMOVE, lang)
+            setPadding(theme.dp(12), 0, 0, 0)
+            isClickable = true; isFocusable = true; foreground = theme.rowRipple()
+            setOnClickListener { prefs.removeFamily(c); if (prefs.familyContacts.isEmpty()) prefs.autoFamilyAlert = false; build() }
+        })
+    }
+
     private fun build() {
         root.removeAllViews()
-        root.addView(theme.text(22f, bold = true).apply { text = UiStrings.get(Ui.FA_TITLE, lang); setTextColor(theme.accent) })
-        val contacts = prefs.familyContacts
-        for (c in contacts) root.addView(theme.button("${c.label}  ✕  (${UiStrings.get(Ui.FA_REMOVE, lang)})") { prefs.removeFamily(c); if (prefs.familyContacts.isEmpty()) prefs.autoFamilyAlert = false; build() })
-        if (contacts.size < FamilyContacts.MAX) root.addView(theme.button(UiStrings.get(if (contacts.isEmpty()) Ui.FAMILY_CHOOSE else Ui.FA_ADD_ANOTHER, lang)) {
-            startActivityForResult(Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI), REQ_PICK)
-        })
-        root.addView(theme.text(15f).apply { text = UiStrings.get(Ui.FA_SENDS, lang) + "\n\n" + UiStrings.get(Ui.FA_NEVER, lang) + "\n\n" + UiStrings.get(Ui.FA_WHEN, lang) })
-        val onOff = UiStrings.get(if (prefs.includeCallerInAlert) Ui.OPT_YES else Ui.OPT_NO, lang)
-        root.addView(theme.button(UiStrings.fmt(Ui.FA_CALLER, lang, onOff)) { prefs.includeCallerInAlert = !prefs.includeCallerInAlert; build() })
-        root.addView(theme.text(15f, bold = true).apply { text = UiStrings.get(Ui.FA_SAMPLE, lang); setPadding(0, 16, 0, 0) })
-        root.addView(theme.text(15f).apply { text = AutoFamilyAlert.sampleMessage(prefs.familyMessageLanguage, prefs.includeCallerInAlert); background = theme.cardDrawable(); setPadding(20, 20, 20, 20) })
+        root.addView(theme.text(22f, bold = true).apply { text = UiStrings.get(Ui.FA_TITLE, lang); setTextColor(theme.fg) })
 
-        if (automaticOn) {
-            root.addView(theme.button(UiStrings.get(Ui.FA_AUTO_OFF, lang)) { prefs.autoFamilyAlert = false; build() })
-        } else {
-            root.addView(theme.button(UiStrings.get(Ui.FA_AUTO_ON, lang)) { agree() })
-        }
+        // Selected contacts: who an alert would go to, and where to add or remove one.
+        val contacts = prefs.familyContacts
+        Rows.section(this, theme, root, UiStrings.get(Ui.FA_SEC_CONTACTS, lang), buildList {
+            contacts.forEach { add(contactRow(it)) }
+            if (contacts.size < FamilyContacts.MAX) add(Rows.navRow(this@FamilyAlertActivity, theme, UiStrings.get(if (contacts.isEmpty()) Ui.FAMILY_CHOOSE else Ui.FA_ADD_ANOTHER, lang)) {
+                startActivityForResult(Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI), REQ_PICK)
+            })
+        })
+
+        // When it sends: the automatic-alert switch is itself the consent action (same behaviour as before —
+        // turning it on still requires SEND_SMS permission via agree()); the rule it follows sits underneath as its description.
+        root.addView(Rows.sectionHeader(this, theme, UiStrings.get(Ui.FA_SEC_TRIGGER, lang)))
+        root.addView(Rows.switchRow(this, theme, UiStrings.get(Ui.FA_AUTO_LABEL, lang), UiStrings.get(Ui.FA_WHEN, lang), checked = automaticOn) { on ->
+            if (on) agree() else { prefs.autoFamilyAlert = false; build() }
+        })
+
+        // What's shared / never shared, and the exact message so there's no guessing.
+        root.addView(Rows.sectionHeader(this, theme, UiStrings.get(Ui.FA_SEC_SHARED, lang)))
+        root.addView(theme.text(14f, muted = true).apply { text = UiStrings.get(Ui.FA_SENDS, lang) })
+        root.addView(Rows.switchRow(this, theme, UiStrings.get(Ui.FA_CALLER_LABEL, lang), checked = prefs.includeCallerInAlert) { prefs.includeCallerInAlert = it; build() })
+        root.addView(theme.text(13f, bold = true, muted = true).apply { text = UiStrings.get(Ui.FA_SAMPLE, lang); setPadding(theme.dp(4), theme.dp(12), theme.dp(4), theme.dp(4)) })
+        root.addView(theme.text(14f).apply { text = AutoFamilyAlert.sampleMessage(prefs.familyMessageLanguage, prefs.includeCallerInAlert); background = theme.cardDrawable(); setPadding(theme.dp(16), theme.dp(16), theme.dp(16), theme.dp(16)) })
+
+        root.addView(Rows.sectionHeader(this, theme, UiStrings.get(Ui.FA_SEC_NOT_SHARED, lang)))
+        root.addView(theme.text(14f, muted = true).apply { text = UiStrings.get(Ui.FA_NEVER, lang) })
+
         root.addView(theme.button(UiStrings.get(Ui.FA_TEST, lang)) { testMessage() })
 
-        root.addView(theme.text(17f, bold = true).apply { text = UiStrings.get(Ui.FA_LOG, lang); setPadding(0, 24, 0, 0) })
+        root.addView(Rows.sectionHeader(this, theme, UiStrings.get(Ui.FA_LOG, lang)))
         val log = AlertLogEntry.parseAll(prefs.familyAlertLog).reversed()
-        root.addView(theme.text(14f).apply {
-            text = if (log.isEmpty()) UiStrings.get(Ui.FA_LOG_EMPTY, lang) else log.joinToString("\n") {
-                val o = when (it.outcome) { AlertLogEntry.Outcome.SENT -> Ui.FA_LOG_SENT; AlertLogEntry.Outcome.FAILED -> Ui.FA_LOG_FAILED; AlertLogEntry.Outcome.TEST -> Ui.FA_LOG_TEST }
-                "${DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(it.atEpochMs))}  ${it.contactName}: ${UiStrings.get(o, lang)}"
+        if (log.isEmpty()) {
+            root.addView(theme.text(14f, muted = true).apply { text = UiStrings.get(Ui.FA_LOG_EMPTY, lang) })
+        } else {
+            log.forEachIndexed { i, e ->
+                if (i > 0) root.addView(View(this).apply { setBackgroundColor(theme.cardBorder); layoutParams = LinearLayout.LayoutParams(-1, theme.dp(1)).also { it.marginStart = theme.dp(4) } })
+                val o = when (e.outcome) { AlertLogEntry.Outcome.SENT -> Ui.FA_LOG_SENT; AlertLogEntry.Outcome.FAILED -> Ui.FA_LOG_FAILED; AlertLogEntry.Outcome.TEST -> Ui.FA_LOG_TEST }
+                val dateTime = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(e.atEpochMs))
+                root.addView(Rows.historyRow(this, theme, theme.fgMuted, dateTime, UiStrings.get(o, lang), e.contactName))
             }
-        })
+        }
         root.addView(theme.button(UiStrings.get(Ui.DONE, lang)) { finish() })
     }
 

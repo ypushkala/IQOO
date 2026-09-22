@@ -19,10 +19,10 @@ class MissedScamActivity : Activity() {
         val prefs = AppPrefs(this)
         val theme = UiTheme(this, prefs.accessibility)
         val lang = prefs.screenLanguage
-        val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(theme.bg); setPadding(32, 48, 32, 32) }
+        val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(theme.bg); setPadding(32, 48, 32, 32) }.also { theme.avoidStatusBar(it) }
         setContentView(ScrollView(this).apply { setBackgroundColor(theme.bg); addView(root) })
 
-        root.addView(theme.text(22f, bold = true).apply { text = UiStrings.get(Ui.MISSED_TITLE, lang); setTextColor(theme.accent) })
+        root.addView(theme.text(22f, bold = true).apply { text = UiStrings.get(Ui.MISSED_TITLE, lang); setTextColor(theme.fg) })
         root.addView(theme.text(15f).apply { text = UiStrings.get(Ui.MISSED_INTRO, lang) })
 
         val tagLabels = mapOf(

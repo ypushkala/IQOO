@@ -28,7 +28,7 @@ class HistoryActivity : Activity() {
         super.onCreate(savedInstanceState)
         prefs = AppPrefs(this)
         theme = UiTheme(this, prefs.accessibility)
-        root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(theme.bg); setPadding(32, 48, 32, 32) }
+        root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(theme.bg); setPadding(32, 48, 32, 32) }.also { theme.avoidStatusBar(it) }
         val page = ScrollView(this).apply { setBackgroundColor(theme.bg); addView(root) }
         val container = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         container.addView(page, LinearLayout.LayoutParams(-1, 0, 1f))
@@ -39,39 +39,46 @@ class HistoryActivity : Activity() {
 
     override fun onResume() { super.onResume(); if (::root.isInitialized) build() } // a report or a block may have just been added
 
+    /** A thin, inset divider between two list rows — same treatment as the Settings rows use. */
+    private fun divider() = android.view.View(this).apply {
+        setBackgroundColor(theme.cardBorder)
+        layoutParams = LinearLayout.LayoutParams(-1, theme.dp(1)).also { it.marginStart = theme.dp(4) }
+    }
+
     private fun build() {
         root.removeAllViews()
-        root.addView(theme.text(22f, bold = true).apply { text = UiStrings.get(Ui.HIST_TITLE, lang); setTextColor(theme.accent) })
+        root.addView(theme.text(22f, bold = true).apply { text = UiStrings.get(Ui.HIST_TITLE, lang); setTextColor(theme.fg) })
 
         val calls = HistoryEntry.parseAll(prefs.callHistory).asReversed()
         if (calls.isEmpty()) {
-            root.addView(theme.text(15f).apply { text = UiStrings.get(Ui.HIST_EMPTY, lang) })
+            root.addView(theme.text(15f, muted = true).apply { text = UiStrings.get(Ui.HIST_EMPTY_HINT, lang); setPadding(0, theme.dp(24), 0, theme.dp(2)) })
+            root.addView(theme.text(15f, bold = true).apply { text = UiStrings.get(Ui.HIST_EMPTY, lang) })
+            root.addView(theme.button(UiStrings.get(Ui.ST_PRACTICE, lang), com.callguard.R.drawable.ic_play) { startActivity(android.content.Intent(this, PracticeActivity::class.java)) })
         } else {
-            for (e in calls) {
-                val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(20, 16, 20, 16); background = theme.cardDrawable() }
-                box.addView(theme.text(16f, bold = true).apply {
-                    text = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(e.atEpochMs)) + "  ·  " + UiStrings.risk(e.level, lang)
-                    setTextColor(theme.statusColor(e.level))
-                })
+            for ((i, e) in calls.withIndex()) {
+                if (i > 0) root.addView(divider())
+                val dateTime = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(e.atEpochMs))
                 val tactics = e.tactics.joinToString(", ") { Strings.tactic(it, lang) }
-                box.addView(theme.text(14f).apply { text = listOfNotNull(e.callerLabel, tactics.ifEmpty { null }).joinToString(" · ").ifEmpty { "—" } })
-                root.addView(box, LinearLayout.LayoutParams(-1, -2).also { it.topMargin = 12 })
+                val detail = listOfNotNull(e.callerLabel, tactics.ifEmpty { null }).joinToString(" · ").ifEmpty { "—" }
+                root.addView(Rows.historyRow(this, theme, theme.statusColor(e.level), dateTime, UiStrings.risk(e.level, lang), detail))
             }
         }
 
         val reports = MissedScamReport.parseAll(prefs.missedScamReports).asReversed()
         if (reports.isNotEmpty()) {
-            root.addView(theme.text(18f, bold = true).apply { text = UiStrings.get(Ui.HIST_REPORTS_TITLE, lang); setPadding(0, 24, 0, 0) })
-            for (r in reports) {
+            root.addView(Rows.sectionHeader(this, theme, UiStrings.get(Ui.HIST_REPORTS_TITLE, lang)))
+            for ((i, r) in reports.withIndex()) {
+                if (i > 0) root.addView(divider())
                 val tags = r.tags.joinToString(", ") { missedTagLabel(it, lang) }
-                root.addView(theme.text(14f).apply {
-                    text = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(r.atEpochMs)) + "  " + tags.ifEmpty { r.note.ifEmpty { "—" } }
-                })
+                val dateTime = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(r.atEpochMs))
+                root.addView(Rows.historyRow(this, theme, theme.fgMuted, dateTime, "", tags.ifEmpty { r.note.ifEmpty { "—" } }))
             }
         }
 
-        val blocked = Blocklist(this).size
-        root.addView(theme.text(15f).apply { text = UiStrings.fmt(Ui.HIST_BLOCKED_FMT, lang, blocked); setPadding(0, 24, 0, 0) })
+        root.addView(theme.text(13.5f, muted = true).apply {
+            text = UiStrings.fmt(Ui.HIST_BLOCKED_FMT, lang, Blocklist(this@HistoryActivity).size)
+            setPadding(theme.dp(4), theme.dp(24), theme.dp(4), 0)
+        })
         root.addView(theme.button(UiStrings.get(Ui.MISSED_BUTTON, lang)) { startActivity(android.content.Intent(this, MissedScamActivity::class.java)) })
     }
 

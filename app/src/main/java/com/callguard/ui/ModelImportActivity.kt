@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.StatFs
 import android.provider.OpenableColumns
+import android.view.View
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import com.callguard.alert.AppPrefs
@@ -35,7 +36,7 @@ class ModelImportActivity : Activity() {
         super.onCreate(savedInstanceState)
         prefs = AppPrefs(this)
         theme = UiTheme(this, prefs.accessibility)
-        root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(theme.bg); setPadding(32, 48, 32, 32) }
+        root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(theme.bg); setPadding(32, 48, 32, 32) }.also { theme.avoidStatusBar(it) }
         setContentView(ScrollView(this).apply { setBackgroundColor(theme.bg); addView(root) })
         ModelShare.cleanUp(this) // a temporary share copy from an earlier visit
         build("")
@@ -50,13 +51,21 @@ class ModelImportActivity : Activity() {
 
     private fun build(results: String) {
         root.removeAllViews()
-        root.addView(theme.text(22f, bold = true).apply { text = UiStrings.get(Ui.MI_TITLE, lang); setTextColor(theme.accent) })
-        root.addView(theme.text(15f, bold = true).apply { text = UiStrings.get(Ui.MI_PACK_HINT, lang) })
-        root.addView(theme.text(15f).apply { text = UiStrings.get(Ui.MI_INTRO, lang) })
+        root.addView(theme.text(22f, bold = true).apply { text = UiStrings.get(Ui.MI_TITLE, lang); setTextColor(theme.fg) })
+        root.addView(theme.text(15f, muted = true).apply { text = UiStrings.get(Ui.MI_INTRO, lang) })
+
+        // On this phone: what's already installed, shown as a small status indicator each — not a packed ✓/✗ sentence.
         val have = { s: ModelSlot -> File(modelsDir(), s.relativePath).isFile }
-        val gemma = if (have(ModelSlot.GEMMA)) "✓" else "✗"
-        val indic = if (have(ModelSlot.OMNILINGUAL_MODEL) && have(ModelSlot.OMNILINGUAL_TOKENS)) "✓" else "✗"
-        root.addView(theme.text(15f, bold = true).apply { text = UiStrings.fmt(Ui.MI_STATUS_FMT, lang, gemma, indic); setPadding(0, 16, 0, 16) })
+        val gemmaOn = have(ModelSlot.GEMMA)
+        val indicOn = have(ModelSlot.OMNILINGUAL_MODEL) && have(ModelSlot.OMNILINGUAL_TOKENS)
+        root.addView(Rows.sectionHeader(this, theme, UiStrings.get(Ui.MI_SEC_INSTALLED, lang)))
+        root.addView(installedRow(gemmaOn, UiStrings.get(Ui.MI_LABEL_EXPLAIN, lang)))
+        root.addView(View(this).apply { setBackgroundColor(theme.cardBorder); layoutParams = LinearLayout.LayoutParams(-1, theme.dp(1)).also { it.marginStart = theme.dp(4) } })
+        root.addView(installedRow(indicOn, UiStrings.get(Ui.MI_LABEL_INDIC, lang)))
+
+        // Get language files: how to add what's missing.
+        root.addView(Rows.sectionHeader(this, theme, UiStrings.get(Ui.MI_SEC_GET, lang)))
+        root.addView(theme.text(14f, muted = true).apply { text = UiStrings.get(Ui.MI_PACK_HINT, lang) })
         root.addView(theme.button(UiStrings.get(Ui.MI_PICK, lang)) {
             startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*").putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true), REQ_PICK)
         })
@@ -64,17 +73,22 @@ class ModelImportActivity : Activity() {
             root.addView(theme.button(UiStrings.get(Ui.MI_DL_WIFI, lang)) { ModelDownloader.start(this, wifiOnly = true); build(results) })
             root.addView(theme.button(UiStrings.get(Ui.MI_DL_MOBILE, lang)) { ModelDownloader.start(this, wifiOnly = false); build(results) })
             val st = ModelDownloader.state(this)
-            if (st != null && st.active) { root.addView(theme.text(14f).apply { text = UiStrings.fmt(Ui.MI_DL_PROGRESS_FMT, lang, st.percent) }); root.postDelayed({ if (!isFinishing) build(results) }, 2000) }
-            else if (st != null && st.failedFiles > 0) root.addView(theme.text(14f).apply { text = UiStrings.fmt(Ui.MI_DL_FAILED_FMT, lang, st.failedFiles) })
+            if (st != null && st.active) { root.addView(theme.text(14f, muted = true).apply { text = UiStrings.fmt(Ui.MI_DL_PROGRESS_FMT, lang, st.percent) }); root.postDelayed({ if (!isFinishing) build(results) }, 2000) }
+            else if (st != null && st.failedFiles > 0) root.addView(theme.text(14f).apply { text = UiStrings.fmt(Ui.MI_DL_FAILED_FMT, lang, st.failedFiles); setTextColor(theme.danger) })
         }
         if (ModelShare.installedModels(this).isNotEmpty()) {
             root.addView(theme.button(UiStrings.get(Ui.MI_SHARE_MODELS, lang)) { share(app = false) })
             root.addView(theme.button(UiStrings.get(Ui.MI_SHARE_APP, lang)) { share(app = true) })
         }
-        log = theme.text(14f).apply { text = results }
+        log = theme.text(14f, muted = true).apply { text = results }
         root.addView(log)
         root.addView(theme.button(UiStrings.get(Ui.DONE, lang)) { finish() })
     }
+
+    /** One installable piece (the explainer model, the Hindi/Telugu model): a status dot, its name, and whether it's on this phone. */
+    private fun installedRow(on: Boolean, label: String) = Rows.historyRow(
+        this, theme, if (on) theme.safe else theme.fgMuted, label, UiStrings.get(if (on) Ui.MI_INSTALLED else Ui.MI_NOT_INSTALLED, lang), ""
+    )
 
     private fun share(app: Boolean) = ModelShare.share(this, app, lang) { log.text = it }
 

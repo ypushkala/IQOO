@@ -20,21 +20,23 @@ import androidx.core.content.ContextCompat
  */
 class UiTheme(private val ctx: Context, val accessible: Boolean) {
     val scale = if (accessible) 1.5f else 1f
-    val bg get() = if (accessible) Color.BLACK else Color.parseColor("#F6F5F2")
-    val fg get() = if (accessible) Color.WHITE else Color.parseColor("#1C2024")
-    val fgMuted get() = if (accessible) Color.parseColor("#CCCCCC") else Color.parseColor("#5B6472")
-    val accent get() = if (accessible) Color.YELLOW else Color.parseColor("#1565C0")
-    val buttonBg get() = if (accessible) Color.parseColor("#FFEB3B") else Color.parseColor("#ECEEF1")
-    val buttonBorder get() = if (accessible) Color.parseColor("#FFEB3B") else Color.parseColor("#D7DBE0")
+    val bg get() = if (accessible) Color.BLACK else Color.parseColor("#F7F6F3")
+    val fg get() = if (accessible) Color.WHITE else Color.parseColor("#1B1C1E")
+    val fgMuted get() = if (accessible) Color.parseColor("#CCCCCC") else Color.parseColor("#6B7076")
+    // A restrained, slightly muted mid-blue — used sparingly (one primary button per screen, the active nav tab,
+    // the progress bar), never as the default colour for titles, headings or section labels.
+    val accent get() = if (accessible) Color.YELLOW else Color.parseColor("#33587E")
+    val buttonBg get() = if (accessible) Color.parseColor("#FFEB3B") else Color.parseColor("#EEEDE9")
+    val buttonBorder get() = if (accessible) Color.parseColor("#FFEB3B") else Color.parseColor("#DAD8D2")
     val cardBg get() = if (accessible) Color.parseColor("#222222") else Color.WHITE
-    val cardBorder get() = if (accessible) Color.parseColor("#3A3A3A") else Color.parseColor("#E3E6EA")
+    val cardBorder get() = if (accessible) Color.parseColor("#3A3A3A") else Color.parseColor("#E2E0DA")
 
-    // One definition of "safe / caution / danger" used everywhere (status card, risk banner, ticks, warning banners),
-    // instead of the same hex codes repeated per screen. Accessibility mode keeps the danger colour readable on black.
-    // Also the exact colours the explainer diagram's risk meter uses, on purpose.
-    val safe get() = Color.parseColor("#2E7D32")
-    val caution get() = Color.parseColor("#EF6C00")
-    val danger get() = if (accessible) Color.parseColor("#FF8A80") else Color.parseColor("#C62828")
+    // One definition of "safe / caution / danger" used everywhere, instead of the same hex codes repeated per
+    // screen. Muted on purpose — these are a signal (a small dot, a status word), never a full-width colour block.
+    // Accessibility mode keeps them readable on black.
+    val safe get() = if (accessible) Color.parseColor("#7CB784") else Color.parseColor("#4B7A55")
+    val caution get() = if (accessible) Color.parseColor("#E4B65C") else Color.parseColor("#9A6A2A")
+    val danger get() = if (accessible) Color.parseColor("#FF8A80") else Color.parseColor("#A23B34")
     fun statusColor(level: com.callguard.core.RiskLevel) = when (level) {
         com.callguard.core.RiskLevel.HIGH -> danger
         com.callguard.core.RiskLevel.MEDIUM -> caution

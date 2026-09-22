@@ -37,14 +37,14 @@ class PracticeActivity : Activity() {
         prefs = AppPrefs(this)
         theme = UiTheme(this, prefs.accessibility)
         alerter = Alerter(this)
-        root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(theme.bg); setPadding(32, 48, 32, 32) }
+        root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(theme.bg); setPadding(32, 48, 32, 32) }.also { theme.avoidStatusBar(it) }
         setContentView(ScrollView(this).apply { setBackgroundColor(theme.bg); addView(root) })
         showPicker()
     }
 
     private fun showPicker() {
         root.removeAllViews()
-        root.addView(theme.text(22f, bold = true).apply { text = UiStrings.get(Ui.PR_PICK_TITLE, lang); setTextColor(theme.accent) })
+        root.addView(theme.text(22f, bold = true).apply { text = UiStrings.get(Ui.PR_PICK_TITLE, lang); setTextColor(theme.fg) })
         root.addView(theme.text(15f).apply { text = UiStrings.get(Ui.PR_PICK_INTRO, lang) })
         for (s in PracticeScenarios.all) root.addView(theme.button(Strings.tactic(s.tactic, lang), com.callguard.R.drawable.ic_alert_triangle) { showScenario(s) })
         root.addView(theme.button(UiStrings.get(Ui.DONE, lang)) { finish() })
@@ -52,7 +52,7 @@ class PracticeActivity : Activity() {
 
     private fun showScenario(scenario: PracticeScenario) {
         root.removeAllViews()
-        root.addView(theme.text(22f, bold = true).apply { text = UiStrings.get(Ui.PR_TITLE, lang); setTextColor(theme.accent) })
+        root.addView(theme.text(22f, bold = true).apply { text = UiStrings.get(Ui.PR_TITLE, lang); setTextColor(theme.fg) })
         root.addView(theme.text(15f).apply { text = UiStrings.get(Ui.PR_SAYS, lang) })
         root.addView(theme.text(20f).apply { text = "“" + scenario.line(lang) + "”"; background = theme.cardDrawable(); setPadding(24, 24, 24, 24) })
         val level = RiskEngine().evaluate(scenario.line(lang)).level.let { if (it < RiskLevel.MEDIUM) RiskLevel.MEDIUM else it }

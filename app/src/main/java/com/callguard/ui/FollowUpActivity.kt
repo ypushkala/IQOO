@@ -37,7 +37,7 @@ class FollowUpActivity : Activity() {
         super.onCreate(savedInstanceState)
         prefs = AppPrefs(this)
         theme = UiTheme(this, prefs.accessibility)
-        root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(theme.bg); setPadding(32, 48, 32, 32) }
+        root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(theme.bg); setPadding(32, 48, 32, 32) }.also { theme.avoidStatusBar(it) }
         setContentView(ScrollView(this).apply { setBackgroundColor(theme.bg); addView(root) })
         build()
     }
@@ -50,7 +50,7 @@ class FollowUpActivity : Activity() {
         val sum = summary
         if (sum == null) { finish(); return } // nothing to follow up on any more
         root.removeAllViews()
-        root.addView(theme.text(22f, bold = true).apply { text = UiStrings.get(Ui.FU_TITLE, lang); setTextColor(theme.accent) })
+        root.addView(theme.text(22f, bold = true).apply { text = UiStrings.get(Ui.FU_TITLE, lang); setTextColor(theme.fg) })
         if (shown >= steps.size) { finishScreen(); return }
         when (steps[shown]) {
             "FEEDBACK" -> feedbackStep(sum)

@@ -21,6 +21,8 @@ data class UiState(
     val gemma: String = "Gemma: off",
     val indic: String = "",
     val caller: String = "",
+    /** When the current call's capture started (wall-clock), so the Home screen can show a live duration. 0 = no active call. Display only — nothing reads this to decide behaviour. */
+    val callStartedAtMs: Long = 0L,
     /** The last finished call, shown after hang-up. In memory only; never written to disk. */
     val summary: CallSummary? = null,
     /** Language the summary should open in (follows the warning-language setting and the call). */

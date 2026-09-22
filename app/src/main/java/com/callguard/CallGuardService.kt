@@ -226,13 +226,13 @@ class CallGuardService : Service() {
             TelephonyManager.CALL_STATE_OFFHOOK -> {
                 val d = ListenPolicy.decide(prefs.analyseScope, CallerRegistry.get())
                 Log.i(TAG, "listen decision: listen=${d.listen} (${d.reason})")
-                if (d.listen) { startCapture("call"); captureFromCall = capture != null; lastBeepMs = 0L; if (captureFromCall) { mainHandler.post(beepTick); updateOngoingNotification(listening = true) }; refresh() }
+                if (d.listen) { startCapture("call"); captureFromCall = capture != null; lastBeepMs = 0L; if (captureFromCall) { mainHandler.post(beepTick); updateOngoingNotification(listening = true); CallGuardState.update { it.copy(callStartedAtMs = System.currentTimeMillis()) } }; refresh() }
                 else CallGuardState.update { it.copy(captureState = "Not listening: ${d.reason} (setting: unknown numbers only)") }
             }
             // Android also reports IDLE right on registration; don't kill a manual test capture.
             TelephonyManager.CALL_STATE_IDLE -> {
                 if (captureFromCall) { captureFromCall = false; mainHandler.removeCallbacks(beepTick); stopCapture(); updateOngoingNotification(listening = false) } // builds the summary while the caller is still known
-                CallerRegistry.clear(); CallGuardState.update { it.copy(caller = "") }
+                CallerRegistry.clear(); CallGuardState.update { it.copy(caller = "", callStartedAtMs = 0L) }
             }
         }
     }
