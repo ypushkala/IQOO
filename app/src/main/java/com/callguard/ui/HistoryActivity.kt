@@ -48,7 +48,7 @@ class HistoryActivity : Activity() {
             root.addView(theme.text(15f).apply { text = UiStrings.get(Ui.HIST_EMPTY, lang) })
         } else {
             for (e in calls) {
-                val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(16, 12, 16, 12); setBackgroundColor(theme.cardBg) }
+                val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(20, 16, 20, 16); background = theme.cardDrawable() }
                 box.addView(theme.text(16f, bold = true).apply {
                     text = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(e.atEpochMs)) + "  ·  " + UiStrings.risk(e.level, lang)
                     setTextColor(theme.statusColor(e.level))

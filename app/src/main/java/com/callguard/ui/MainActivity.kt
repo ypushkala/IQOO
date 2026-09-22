@@ -94,14 +94,14 @@ class MainActivity : Activity() {
             }
         })
         // ---- status: is protection on, and what is the one thing to do? ----
-        healthCard = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(24, 20, 24, 20); setBackgroundColor(theme.cardBg) }
+        healthCard = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(24, 20, 24, 20); background = theme.cardDrawable() }
         healthTitle = theme.text(24f, bold = true).also(healthCard::addView)
         healthBody = theme.text(16f).also(healthCard::addView)
-        healthButton = theme.primary(HealthText.setupButton(lang)) { onHealthAction() }.also(healthCard::addView)
+        healthButton = theme.primary(HealthText.setupButton(lang), com.callguard.R.drawable.ic_shield_check) { onHealthAction() }.also(healthCard::addView)
         root.addView(healthCard, LinearLayout.LayoutParams(-1, -2).also { it.topMargin = 16 })
 
         // ---- unprotected-call nudge: quietly counted by the caller-ID service, shown here since it always runs ----
-        unprotectedBanner = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE; setPadding(20, 16, 20, 16); setBackgroundColor(theme.cardBg) }
+        unprotectedBanner = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE; setPadding(20, 16, 20, 16); background = theme.cardDrawable() }
         unprotectedText = theme.text(14f).also(unprotectedBanner::addView)
         unprotectedBanner.addView(theme.button(UiStrings.get(Ui.UNPROTECTED_DISMISS, lang)) { prefs.unprotectedCallLog = com.callguard.core.UnprotectedCallLog.clear(); renderUnprotectedNudge() })
         root.addView(unprotectedBanner, LinearLayout.LayoutParams(-1, -2).also { it.topMargin = 12 })
@@ -117,12 +117,12 @@ class MainActivity : Activity() {
         coachLine = theme.text(14f).also(root::addView)
 
         // ---- last call (post-call summary): the one urgent action first, everything else under "More" ----
-        summaryCard = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE; setPadding(16, 16, 16, 16); setBackgroundColor(theme.cardBg) }
+        summaryCard = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE; setPadding(20, 20, 20, 20); background = theme.cardDrawable() }
         summaryCard.addView(theme.text(18f, bold = true).apply { text = UiStrings.get(Ui.HOME_LAST_CALL, lang); setTextColor(theme.accent) })
         summaryText = theme.text(15f).also(summaryCard::addView)
         // A MEDIUM/HIGH call opens the guided "what next" sequence (feedback, recovery, block, family) one step at a
         // time, the same pattern as Get Ready, instead of dropping the person into a flat menu of buttons.
-        urgentButton = theme.primary(UiStrings.get(Ui.RECOVERY_BUTTON, lang)) { startActivity(Intent(this, FollowUpActivity::class.java)) }.also(summaryCard::addView)
+        urgentButton = theme.primary(UiStrings.get(Ui.RECOVERY_BUTTON, lang), com.callguard.R.drawable.ic_alert_triangle) { startActivity(Intent(this, FollowUpActivity::class.java)) }.also(summaryCard::addView)
         // "was this a scam?" (kept on this phone only)
         feedbackBox = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         feedbackBox.addView(theme.text(16f, bold = true).apply { text = UiStrings.get(Ui.FEEDBACK_Q, lang) })
@@ -136,7 +136,7 @@ class MainActivity : Activity() {
         moreBox.addView(theme.button(UiStrings.get(Ui.READ_ALOUD, lang)) { readAloud() })
         moreBox.addView(theme.button(UiStrings.get(Ui.FAMILY_ALERT, lang)) { alertFamily() })
         moreBox.addView(theme.button(UiStrings.get(Ui.SHARE, lang)) { shareReport() })
-        blockButton = theme.button("") { toggleBlock() }.also(moreBox::addView)
+        blockButton = theme.button("", com.callguard.R.drawable.ic_block) { toggleBlock() }.also(moreBox::addView)
         moreBox.addView(theme.button(UiStrings.get(Ui.HELPLINE, lang)) { startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:1930"))) })
         moreBox.addView(theme.button(UiStrings.get(Ui.DISMISS, lang)) { CallGuardState.update { it.copy(summary = null) } })
         moreButton = theme.button(UiStrings.get(Ui.HOME_MORE, lang)) {
@@ -147,8 +147,8 @@ class MainActivity : Activity() {
         root.addView(summaryCard, LinearLayout.LayoutParams(-1, -2).also { it.topMargin = 16 })
 
         // ---- quick actions (Home/History/Settings live in the nav bar below instead) ----
-        root.addView(theme.button(UiStrings.get(Ui.GR_HELP_OTHERS, lang)) { startActivity(Intent(this, HelperActivity::class.java)) })
-        root.addView(theme.button(UiStrings.get(Ui.HOME_PRACTICE, lang)) { startActivity(Intent(this, PracticeActivity::class.java)) })
+        root.addView(theme.button(UiStrings.get(Ui.GR_HELP_OTHERS, lang), com.callguard.R.drawable.ic_family) { startActivity(Intent(this, HelperActivity::class.java)) })
+        root.addView(theme.button(UiStrings.get(Ui.HOME_PRACTICE, lang), com.callguard.R.drawable.ic_play) { startActivity(Intent(this, PracticeActivity::class.java)) })
 
         // ---- developer tools: debug builds only (test capture, stop, raw transcript, diagnostics) ----
         transcript = theme.text(18f)

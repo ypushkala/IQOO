@@ -45,7 +45,7 @@ class SettingsActivity : Activity() {
         root.addView(theme.text(22f, bold = true).apply { text = UiStrings.get(Ui.SETTINGS, lang); setTextColor(theme.accent) })
         root.addView(theme.button(UiStrings.get(Ui.MY_LANGUAGE, lang) + ": " + UiStrings.name(prefs.screenLanguage)) { startActivity(Intent(this, LanguagesActivity::class.java)) })
         root.addView(theme.button(UiStrings.get(if (theme.accessible) Ui.ACCESS_ON else Ui.ACCESS_OFF, lang)) { prefs.accessibility = !theme.accessible; recreate() })
-        root.addView(theme.button(UiStrings.get(Ui.FA_OPEN, lang)) { startActivity(Intent(this, FamilyAlertActivity::class.java)) })
+        root.addView(theme.button(UiStrings.get(Ui.FA_OPEN, lang), com.callguard.R.drawable.ic_family) { startActivity(Intent(this, FamilyAlertActivity::class.java)) })
         root.addView(theme.button(UiStrings.get(Ui.MI_TITLE, lang)) { startActivity(Intent(this, ModelImportActivity::class.java)) })
         root.addView(theme.text(15f).apply { text = UiStrings.get(Ui.SETTINGS_INTRO, lang); setPadding(0, 16, 0, 0) })
         root.addView(theme.button("${UiStrings.get(Ui.SCOPE_LABEL, lang)}: ${UiStrings.scopeOption(prefs.analyseScope, lang)}") {
@@ -74,11 +74,11 @@ class SettingsActivity : Activity() {
         root.addView(theme.text(15f).apply { text = UiStrings.fmt(Ui.BLOCK_LIST_FMT, lang, blocks.size); setPadding(0, 24, 0, 0) })
         if (blocks.size > 0) root.addView(theme.button(UiStrings.get(Ui.BLOCK_CLEAR, lang)) { blocks.clear(); build() })
         root.addView(theme.text(18f, bold = true).apply { text = UiStrings.get(Ui.ST_SECTION_HELP, lang); setPadding(0, 32, 0, 0) })
-        root.addView(theme.button(UiStrings.get(Ui.HOME_HISTORY, lang)) { startActivity(Intent(this, HistoryActivity::class.java)) })
-        root.addView(theme.button(UiStrings.get(Ui.MISSED_BUTTON, lang)) { startActivity(Intent(this, MissedScamActivity::class.java)) })
-        root.addView(theme.button(UiStrings.get(Ui.GR_HELP_OTHERS, lang)) { startActivity(Intent(this, HelperActivity::class.java)) })
-        root.addView(theme.button(UiStrings.get(Ui.HOME_PRACTICE, lang)) { startActivity(Intent(this, PracticeActivity::class.java)) })
-        root.addView(theme.button(UiStrings.get(Ui.HOME_TURN_OFF, lang)) { startService(Intent(this, CallGuardService::class.java).setAction(CallGuardService.ACTION_STOP)) })
+        root.addView(theme.button(UiStrings.get(Ui.HOME_HISTORY, lang), com.callguard.R.drawable.ic_history) { startActivity(Intent(this, HistoryActivity::class.java)) })
+        root.addView(theme.button(UiStrings.get(Ui.MISSED_BUTTON, lang), com.callguard.R.drawable.ic_alert_triangle) { startActivity(Intent(this, MissedScamActivity::class.java)) })
+        root.addView(theme.button(UiStrings.get(Ui.GR_HELP_OTHERS, lang), com.callguard.R.drawable.ic_family) { startActivity(Intent(this, HelperActivity::class.java)) })
+        root.addView(theme.button(UiStrings.get(Ui.HOME_PRACTICE, lang), com.callguard.R.drawable.ic_play) { startActivity(Intent(this, PracticeActivity::class.java)) })
+        root.addView(theme.button(UiStrings.get(Ui.HOME_TURN_OFF, lang), com.callguard.R.drawable.ic_block) { startService(Intent(this, CallGuardService::class.java).setAction(CallGuardService.ACTION_STOP)) })
         val last = SetupRun.parseAll(prefs.setupRuns).lastOrNull()
         root.addView(theme.text(13f).apply {
             text = if (last == null) UiStrings.get(Ui.ST_METRICS_NONE, lang) else UiStrings.fmt(Ui.ST_METRICS_FMT, lang, "%d:%02d".format(last.durationMs / 60000, last.durationMs / 1000 % 60), last.taps) + if (last.meetsTarget) " ✓" else ""

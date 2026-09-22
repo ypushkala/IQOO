@@ -73,7 +73,7 @@ class RecoveryActivity : Activity() {
             when (step.action) {
                 StepAction.CALL_BANK -> if (bank.isNotEmpty()) root.addView(theme.button("${UiStrings.get(Ui.BANK_NUMBER_SET, lang)}: $bank") { dial(bank) })
                     else root.addView(theme.button(UiStrings.get(Ui.BANK_NUMBER, lang)) { askBank() })
-                StepAction.CALL_1930 -> root.addView(theme.button(UiStrings.get(Ui.HELPLINE, lang)) { dial(RecoveryPlan.HELPLINE) })
+                StepAction.CALL_1930 -> root.addView(theme.button(UiStrings.get(Ui.HELPLINE, lang), com.callguard.R.drawable.ic_phone) { dial(RecoveryPlan.HELPLINE) })
                 StepAction.OPEN_PORTAL -> root.addView(theme.button("cybercrime.gov.in") { open(Intent(Intent.ACTION_VIEW, Uri.parse(RecoveryPlan.PORTAL_URL))) })
                 StepAction.OPEN_APP_SETTINGS -> root.addView(theme.button("Apps") { open(Intent(Settings.ACTION_APPLICATION_SETTINGS)) })
                 StepAction.NONE -> {}

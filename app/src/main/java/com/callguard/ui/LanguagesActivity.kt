@@ -58,7 +58,7 @@ class LanguagesActivity : Activity() {
     }
 
     private fun row(label: Ui, value: String, onClick: () -> Unit) {
-        root.addView(theme.button("${UiStrings.get(label, lang)}: $value", onClick))
+        root.addView(theme.button("${UiStrings.get(label, lang)}: $value", onClick = onClick))
     }
 
     private fun pickLang(title: Ui, current: Lang, set: (Lang) -> Unit) =

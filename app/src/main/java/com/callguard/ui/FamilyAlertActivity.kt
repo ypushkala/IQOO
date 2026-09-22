@@ -53,7 +53,7 @@ class FamilyAlertActivity : Activity() {
         val onOff = UiStrings.get(if (prefs.includeCallerInAlert) Ui.OPT_YES else Ui.OPT_NO, lang)
         root.addView(theme.button(UiStrings.fmt(Ui.FA_CALLER, lang, onOff)) { prefs.includeCallerInAlert = !prefs.includeCallerInAlert; build() })
         root.addView(theme.text(15f, bold = true).apply { text = UiStrings.get(Ui.FA_SAMPLE, lang); setPadding(0, 16, 0, 0) })
-        root.addView(theme.text(15f).apply { text = AutoFamilyAlert.sampleMessage(prefs.familyMessageLanguage, prefs.includeCallerInAlert); setBackgroundColor(theme.cardBg); setPadding(16, 16, 16, 16) })
+        root.addView(theme.text(15f).apply { text = AutoFamilyAlert.sampleMessage(prefs.familyMessageLanguage, prefs.includeCallerInAlert); background = theme.cardDrawable(); setPadding(20, 20, 20, 20) })
 
         if (automaticOn) {
             root.addView(theme.button(UiStrings.get(Ui.FA_AUTO_OFF, lang)) { prefs.autoFamilyAlert = false; build() })

@@ -46,7 +46,7 @@ class PracticeActivity : Activity() {
         root.removeAllViews()
         root.addView(theme.text(22f, bold = true).apply { text = UiStrings.get(Ui.PR_PICK_TITLE, lang); setTextColor(theme.accent) })
         root.addView(theme.text(15f).apply { text = UiStrings.get(Ui.PR_PICK_INTRO, lang) })
-        for (s in PracticeScenarios.all) root.addView(theme.button(Strings.tactic(s.tactic, lang)) { showScenario(s) })
+        for (s in PracticeScenarios.all) root.addView(theme.button(Strings.tactic(s.tactic, lang), com.callguard.R.drawable.ic_alert_triangle) { showScenario(s) })
         root.addView(theme.button(UiStrings.get(Ui.DONE, lang)) { finish() })
     }
 
@@ -54,13 +54,13 @@ class PracticeActivity : Activity() {
         root.removeAllViews()
         root.addView(theme.text(22f, bold = true).apply { text = UiStrings.get(Ui.PR_TITLE, lang); setTextColor(theme.accent) })
         root.addView(theme.text(15f).apply { text = UiStrings.get(Ui.PR_SAYS, lang) })
-        root.addView(theme.text(20f).apply { text = "“" + scenario.line(lang) + "”"; setBackgroundColor(theme.cardBg); setPadding(24, 24, 24, 24) })
+        root.addView(theme.text(20f).apply { text = "“" + scenario.line(lang) + "”"; background = theme.cardDrawable(); setPadding(24, 24, 24, 24) })
         val level = RiskEngine().evaluate(scenario.line(lang)).level.let { if (it < RiskLevel.MEDIUM) RiskLevel.MEDIUM else it }
         val banner = theme.text(20f, bold = true).apply {
             gravity = Gravity.CENTER; setPadding(16, 32, 16, 32); visibility = View.GONE; setTextColor(android.graphics.Color.WHITE); setBackgroundColor(theme.danger)
         }
         val note = theme.text(15f)
-        val start = theme.primary(UiStrings.get(Ui.PR_START, lang)) {}
+        val start = theme.primary(UiStrings.get(Ui.PR_START, lang), com.callguard.R.drawable.ic_play) {}
         start.setOnClickListener {
             start.isEnabled = false
             note.text = UiStrings.get(Ui.PR_RINGING, lang)
