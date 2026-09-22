@@ -45,7 +45,7 @@ class SetupActivity : Activity() {
         super.onCreate(savedInstanceState)
         prefs = AppPrefs(this)
         theme = UiTheme(this, prefs.accessibility)
-        root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(theme.bg); setPadding(32, 48, 32, 32) }
+        root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(theme.bg); setPadding(32, 48, 32, 32) }.also { theme.avoidStatusBar(it) }
         setContentView(ScrollView(this).apply { setBackgroundColor(theme.bg); addView(root) })
         if (prefs.setupStartedAt == 0L) { prefs.setupStartedAt = System.currentTimeMillis(); prefs.setupTaps = 0 }
     }
@@ -62,6 +62,15 @@ class SetupActivity : Activity() {
     private fun speakTrustBody() {
         tts?.language = com.callguard.alert.Alerter.localeOf(lang)
         tts?.speak(UiStrings.get(Ui.TR_BODY, lang), android.speech.tts.TextToSpeech.QUEUE_FLUSH, null, "trust")
+    }
+
+    /** A thin, quiet fraction-of-the-way bar — two weighted views, no extra library, no numbers competing with "Step X of Y". */
+    private fun progressBar(shown: Int, total: Int) = LinearLayout(this).apply {
+        orientation = LinearLayout.HORIZONTAL
+        layoutParams = LinearLayout.LayoutParams(-1, theme.dp(4)).also { it.topMargin = theme.dp(10); it.marginStart = theme.dp(4); it.marginEnd = theme.dp(4) }
+        val done = (shown + 1).coerceIn(1, total)
+        addView(android.view.View(this@SetupActivity).apply { setBackgroundColor(theme.accent) }, LinearLayout.LayoutParams(0, -1, done.toFloat()))
+        if (done < total) addView(android.view.View(this@SetupActivity).apply { setBackgroundColor(theme.cardBorder) }, LinearLayout.LayoutParams(0, -1, (total - done).toFloat()))
     }
 
     private fun tap() { prefs.setupTaps = prefs.setupTaps + 1 }
@@ -104,12 +113,14 @@ class SetupActivity : Activity() {
         val steps = steps()
         if (shown < 0 || shown > steps.size) shown = steps.indexOfFirst { !it.done }.let { if (it < 0) steps.size else it }
         root.removeAllViews()
-        root.addView(theme.text(22f, bold = true).apply { text = HealthText.setupTitle(lang); setTextColor(theme.accent) })
+        // Small eyebrow, not the loudest thing on screen — the current step's own heading carries the weight instead.
+        root.addView(theme.text(13f, bold = true).apply { text = HealthText.setupTitle(lang); setTextColor(theme.accent); setPadding(theme.dp(4), 0, theme.dp(4), 0) })
         if (shown >= steps.size) { finishScreen(steps.size); return }
         val s = steps[shown]
-        root.addView(theme.text(15f).apply { text = UiStrings.fmt(Ui.SETUP_STEP_FMT, lang, shown + 1, steps.size) })
-        root.addView(theme.text(26f, bold = true).apply { text = s.title; contentDescription = s.title; setPadding(0, 24, 0, 8) })
-        root.addView(theme.text(17f).apply { text = s.why })
+        root.addView(theme.text(13.5f, muted = true).apply { text = UiStrings.fmt(Ui.SETUP_STEP_FMT, lang, shown + 1, steps.size); setPadding(theme.dp(4), theme.dp(2), theme.dp(4), 0) })
+        root.addView(progressBar(shown, steps.size))
+        root.addView(theme.text(27f, bold = true).apply { text = s.title; contentDescription = s.title; setPadding(theme.dp(4), theme.dp(16), theme.dp(4), theme.dp(6)) })
+        root.addView(theme.text(16f, muted = true).apply { text = s.why; setPadding(theme.dp(4), 0, theme.dp(4), 0) })
         if (s.key == "LANG") {
             for (l in Lang.values()) root.addView(action((if (l == prefs.screenLanguage && prefs.languagesChosen) "✓  " else "") + UiStrings.name(l)) { prefs.setMyLanguage(l); build() })
         }
@@ -119,7 +130,7 @@ class SetupActivity : Activity() {
                 text = UiStrings.fmt(Ui.TR_CHECK_FMT, lang, UiStrings.get(if (verified) Ui.TR_CHECK_YES else Ui.TR_CHECK_NO, lang))
                 setTextColor(if (verified) theme.safe else theme.caution)
             })
-            root.addView(theme.button(UiStrings.get(Ui.TR_READ_ALOUD, lang)) { readTrustBodyAloud() })
+            root.addView(theme.button(UiStrings.get(Ui.TR_READ_ALOUD, lang), com.callguard.R.drawable.ic_volume) { readTrustBodyAloud() })
             if (!prefs.trustStepSeen) root.addView(action(UiStrings.get(Ui.GR_NEXT, lang)) { prefs.trustStepSeen = true; build() })
         }
         if (s.done) {

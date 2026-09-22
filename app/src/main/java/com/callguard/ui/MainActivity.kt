@@ -82,7 +82,7 @@ class MainActivity : Activity() {
         techVisible = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
         tts = TextToSpeech(this) { ttsReady = it == TextToSpeech.SUCCESS }
 
-        val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(theme.bg); setPadding(32, 48, 32, 32) }
+        val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(theme.bg); setPadding(32, 48, 32, 32) }.also { theme.avoidStatusBar(it) }
         val page = ScrollView(this).apply { setBackgroundColor(theme.bg); addView(root) }
 
         val debugBuild = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0

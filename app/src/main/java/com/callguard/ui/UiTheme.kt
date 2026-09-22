@@ -73,9 +73,24 @@ class UiTheme(private val ctx: Context, val accessible: Boolean) {
         setBounds(0, 0, s, s)
     }
 
+    /** The 8/16/24/32 spacing system, scaled for accessibility mode like everything else. */
+    fun dp(n: Int) = (n * scale).toInt()
+
+    /** Adds the status bar's own height as extra top padding, so a page's title never sits under the clock/icons
+     *  (Android 15's edge-to-edge default draws content behind the status bar unless a view accounts for it itself). */
+    fun avoidStatusBar(view: android.view.View, extra: Int = 0) {
+        val basePadding = view.paddingTop
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(view) { v, insets ->
+            val bars = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.statusBars())
+            v.setPadding(v.paddingLeft, basePadding + bars.top + extra, v.paddingRight, v.paddingBottom)
+            insets
+        }
+    }
+
     fun button(label: String, icon: Int? = null, onClick: () -> Unit) = Button(ctx).apply {
         text = label; setOnClickListener { onClick() }
         setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f * scale); setTextColor(fg)
+        isAllCaps = false // sentence case: the platform Button style shouts in caps by default
         background = rippleBackground(buttonBg, 16f * scale, buttonBorder)
         minimumHeight = (48 * scale).toInt()
         icon?.let { setCompoundDrawables(tint(it, fg), null, null, null); compoundDrawablePadding = (12 * scale).toInt() }
@@ -83,14 +98,34 @@ class UiTheme(private val ctx: Context, val accessible: Boolean) {
         contentDescription = label
     }
 
-    /** The one main action on a screen: larger, filled with the accent colour. */
+    /** The one main action on a screen: larger, filled with the accent colour. Use sparingly — one per screen. */
     fun primary(label: String, icon: Int? = null, onClick: () -> Unit) = Button(ctx).apply {
         text = label; setOnClickListener { onClick() }
         setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f * scale); setTextColor(if (accessible) Color.BLACK else Color.WHITE)
+        isAllCaps = false
         background = rippleBackground(accent, 16f * scale)
         minimumHeight = (64 * scale).toInt()
         icon?.let { setCompoundDrawables(tint(it, if (accessible) Color.BLACK else Color.WHITE), null, null, null); compoundDrawablePadding = (14 * scale).toInt() }
         layoutParams = LinearLayout.LayoutParams(-1, -2).also { it.topMargin = (16 * scale).toInt() }
         contentDescription = label
+    }
+
+    /** A destructive action, named but not shouted: outlined in the danger colour, never a solid filled block. */
+    fun dangerButton(label: String, onClick: () -> Unit) = Button(ctx).apply {
+        text = label; setOnClickListener { onClick() }
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f * scale); setTextColor(danger)
+        isAllCaps = false
+        background = rippleBackground(if (accessible) Color.BLACK else Color.WHITE, 16f * scale, danger)
+        minimumHeight = (48 * scale).toInt()
+        layoutParams = LinearLayout.LayoutParams(-1, -2).also { it.topMargin = (8 * scale).toInt() }
+        contentDescription = label
+    }
+
+    /** A plain tap ripple with no fill or border, for list rows that sit directly on the page background. */
+    fun rowRipple(): Drawable = RippleDrawable(ColorStateList.valueOf(Color.argb(28, 0, 0, 0)), null, null)
+
+    internal fun tintedIcon(icon: Int, color: Int = fgMuted, size: Int = 22) = android.widget.ImageView(ctx).apply {
+        setImageDrawable(ContextCompat.getDrawable(ctx, icon)?.mutate()?.apply { setTint(color) })
+        layoutParams = LinearLayout.LayoutParams(dp(size), dp(size))
     }
 }
