@@ -42,7 +42,22 @@ class RecoveryActivity : Activity() {
         root.removeAllViews()
         root.addView(theme.text(22f, bold = true).apply { text = UiStrings.get(Ui.RECOVERY_TITLE, lang); setTextColor(theme.accent) })
         root.addView(theme.text(15f).apply { text = UiStrings.get(Ui.RECOVERY_INTRO, lang) })
-        root.addView(theme.text(17f, bold = true).apply { text = UiStrings.get(Ui.RECOVERY_WHAT, lang) })
+        // The single most urgent action, visible immediately — a HIGH-risk / money-sent moment should not require
+        // ticking checkboxes first. It reflects what the call itself already suggested happened.
+        val bank0 = prefs.bankHelpline
+        RecoveryPlan.steps(situations).firstOrNull { it.action != StepAction.NONE }?.let { top ->
+            root.addView(theme.text(15f, bold = true).apply { text = UiStrings.get(Ui.URGENT_FIRST, lang) })
+            root.addView(theme.primary(RecoveryPlan.stepText(top.id, lang, bank0.isNotEmpty())) {
+                when (top.action) {
+                    StepAction.CALL_BANK -> if (bank0.isNotEmpty()) dial(bank0) else askBank()
+                    StepAction.CALL_1930 -> dial(RecoveryPlan.HELPLINE)
+                    StepAction.OPEN_PORTAL -> open(Intent(Intent.ACTION_VIEW, Uri.parse(RecoveryPlan.PORTAL_URL)))
+                    StepAction.OPEN_APP_SETTINGS -> open(Intent(Settings.ACTION_APPLICATION_SETTINGS))
+                    StepAction.NONE -> {}
+                }
+            })
+        }
+        root.addView(theme.text(17f, bold = true).apply { text = UiStrings.get(Ui.RECOVERY_WHAT, lang); setPadding(0, 24, 0, 8) })
         for (s in Situation.values()) root.addView(CheckBox(this).apply {
             text = RecoveryPlan.situationLabel(s, lang); textSize = 16f; setTextColor(theme.fg); isChecked = s in situations
             setOnCheckedChangeListener { _, on -> if (on) situations += s else situations -= s; done.clear(); build() }

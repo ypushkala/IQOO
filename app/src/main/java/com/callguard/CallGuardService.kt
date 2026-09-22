@@ -164,16 +164,32 @@ class CallGuardService : Service() {
         }
     }
 
+    /**
+     * The always-on foreground notification, kept honest about what is actually happening right now: "watching" while
+     * idle between calls, "protecting" while a call is being listened to. Safe wording on the lock screen too, so a
+     * glance answers "am I protected" without opening the app — the same ambient signal a Wi-Fi icon gives.
+     */
     private fun startForegroundCompat() {
         val nm = getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(NotificationChannel(CHANNEL, "CallGuard", NotificationManager.IMPORTANCE_LOW))
-        val n = Notification.Builder(this, CHANNEL)
-            .setContentTitle("CallGuard is protecting this call")
-            .setContentText("On-device only. Nothing leaves your phone.")
-            .setSmallIcon(android.R.drawable.ic_lock_idle_lock)
-            .build()
+        val n = ongoingNotification(listening = false)
         if (Build.VERSION.SDK_INT >= 29) startForeground(1, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
         else startForeground(1, n)
+    }
+
+    private fun ongoingNotification(listening: Boolean): Notification {
+        val l = prefs.screenLanguage
+        val (titleKey, bodyKey) = if (listening) com.callguard.core.Ui.NOTIF_LISTENING_TITLE to com.callguard.core.Ui.NOTIF_LISTENING_BODY
+            else com.callguard.core.Ui.NOTIF_WATCHING_TITLE to com.callguard.core.Ui.NOTIF_WATCHING_BODY
+        return Notification.Builder(this, CHANNEL)
+            .setContentTitle(com.callguard.core.UiStrings.get(titleKey, l)).setContentText(com.callguard.core.UiStrings.get(bodyKey, l))
+            .setSmallIcon(android.R.drawable.ic_lock_idle_lock)
+            .setVisibility(Notification.VISIBILITY_PUBLIC) // wording itself is safe to show; only the call summary stays private
+            .build()
+    }
+
+    private fun updateOngoingNotification(listening: Boolean) {
+        getSystemService(NotificationManager::class.java).notify(1, ongoingNotification(listening))
     }
 
     private fun registerCallState() {
@@ -210,12 +226,12 @@ class CallGuardService : Service() {
             TelephonyManager.CALL_STATE_OFFHOOK -> {
                 val d = ListenPolicy.decide(prefs.analyseScope, CallerRegistry.get())
                 Log.i(TAG, "listen decision: listen=${d.listen} (${d.reason})")
-                if (d.listen) { startCapture("call"); captureFromCall = capture != null; lastBeepMs = 0L; if (captureFromCall) mainHandler.post(beepTick); refresh() }
+                if (d.listen) { startCapture("call"); captureFromCall = capture != null; lastBeepMs = 0L; if (captureFromCall) { mainHandler.post(beepTick); updateOngoingNotification(listening = true) }; refresh() }
                 else CallGuardState.update { it.copy(captureState = "Not listening: ${d.reason} (setting: unknown numbers only)") }
             }
             // Android also reports IDLE right on registration; don't kill a manual test capture.
             TelephonyManager.CALL_STATE_IDLE -> {
-                if (captureFromCall) { captureFromCall = false; mainHandler.removeCallbacks(beepTick); stopCapture() } // builds the summary while the caller is still known
+                if (captureFromCall) { captureFromCall = false; mainHandler.removeCallbacks(beepTick); stopCapture(); updateOngoingNotification(listening = false) } // builds the summary while the caller is still known
                 CallerRegistry.clear(); CallGuardState.update { it.copy(caller = "") }
             }
         }
@@ -231,7 +247,8 @@ class CallGuardService : Service() {
         @Suppress("DEPRECATION") audioManager.isSpeakerphoneOn = true
         Log.i(TAG, "speakerphone requested; isSpeakerphoneOn=${@Suppress("DEPRECATION") audioManager.isSpeakerphoneOn} audioMode=${audioManager.mode}")
         familyAlertSent = false; transcript.clear(); debouncer.reset(); gemmaSource.clear(); langTracker.reset(); timeline.start(System.currentTimeMillis())
-        CallGuardState.update { it.copy(transcript = "", detection = com.callguard.core.DetectionResult.NONE, lastAlert = "", summary = null, callLang = Lang.EN) }
+        getSystemService(NotificationManager::class.java).cancel(LIVE_ALERT_NOTIFICATION_ID)
+        CallGuardState.update { it.copy(transcript = "", detection = com.callguard.core.DetectionResult.NONE, lastAlert = "", alertTactics = emptyList(), summary = null, callLang = Lang.EN) }
         val cap = AudioCapture { pcm, n -> ring.write(pcm, n); asr?.feed(pcm, n) }
         val err = cap.start()
         if (err != null) {
@@ -265,6 +282,8 @@ class CallGuardService : Service() {
         CallGuardState.update { it.copy(summary = summary, summaryLang = lang, callLang = langTracker.callLanguage()) }
         Log.i(TAG, "call summary ready: level=${summary.level} findings=${summary.findings.size} duration_ms=${summary.durationMs}")
         if (summary.level >= RiskLevel.MEDIUM) notifySummary(summary, lang)
+        prefs.callHistory = com.callguard.core.HistoryEntry.append(prefs.callHistory,
+            com.callguard.core.HistoryEntry(summary.startedAtEpochMs, summary.durationMs, summary.level, summary.findings.map { it.tactic }, summary.callerSummary, summary.numberHash))
         return summary
     }
 
@@ -331,13 +350,42 @@ class CallGuardService : Service() {
         val alerts = debouncer.onDetection(result, now)
         timeline.record(now, result, if (alerts.isNotEmpty()) 1 else 0)
         var lastAlert: String? = null
+        var tactics: List<com.callguard.core.Tactic> = emptyList()
         if (alerts.isNotEmpty()) {
             replayAlerts++
-            alerter?.warn(if (alerts.any { it.level == RiskLevel.HIGH }) RiskLevel.HIGH else RiskLevel.MEDIUM, LanguageResolver.spoken(prefs.choices, langTracker.callLanguage()))
+            val level = if (alerts.any { it.level == RiskLevel.HIGH }) RiskLevel.HIGH else RiskLevel.MEDIUM
+            alerter?.warn(level, LanguageResolver.spoken(prefs.choices, langTracker.callLanguage()))
             lastAlert = alerts.joinToString { "${it.tactic.label} (“${it.matched}”)" }
+            tactics = com.callguard.core.AlertReason.topTactic(alerts)?.let { listOf(it) } ?: emptyList()
             if (alerts.any { it.level == RiskLevel.HIGH }) maybeAutoAlertFamily(result)?.let { lastAlert += "\n$it" }
+            notifyLiveAlert(level, tactics)
         }
-        CallGuardState.update { it.copy(transcript = transcript.text(), detection = result, lastAlert = lastAlert ?: it.lastAlert, callLang = langTracker.callLanguage()) }
+        CallGuardState.update { it.copy(transcript = transcript.text(), detection = result, lastAlert = lastAlert ?: it.lastAlert,
+            alertTactics = if (tactics.isNotEmpty()) tactics else it.alertTactics, callLang = langTracker.callLanguage()) }
+    }
+
+    /**
+     * A HIGH/MEDIUM alert also becomes a proper notification, not just the in-app banner, so it is visible even if the
+     * screen is off or locked during a speakerphone call. The lock-screen version never names the tactic; the private
+     * one (shown once unlocked, or if the phone allows private notifications on the lock screen) does.
+     */
+    private fun notifyLiveAlert(level: RiskLevel, tactics: List<com.callguard.core.Tactic>) {
+        val l = prefs.screenLanguage
+        val nm = getSystemService(NotificationManager::class.java)
+        nm.createNotificationChannel(NotificationChannel(LIVE_CHANNEL, "Live call warnings", NotificationManager.IMPORTANCE_HIGH))
+        val public = Notification.Builder(this, LIVE_CHANNEL)
+            .setContentTitle(com.callguard.core.UiStrings.get(com.callguard.core.Ui.LIVE_ALERT_PUBLIC_TITLE, l)).setSmallIcon(android.R.drawable.ic_dialog_alert).build()
+        val open = android.app.PendingIntent.getActivity(
+            this, 1, Intent(this, com.callguard.ui.MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK),
+            android.app.PendingIntent.FLAG_IMMUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        val n = Notification.Builder(this, LIVE_CHANNEL)
+            .setContentTitle(Strings.headline(level, l)).setContentText(com.callguard.core.AlertReason.line(tactics.map { com.callguard.core.Signal("", "", it, level, "") }, l) ?: "")
+            .setCategory(Notification.CATEGORY_CALL).setPriority(Notification.PRIORITY_HIGH)
+            .setSmallIcon(android.R.drawable.ic_dialog_alert).setContentIntent(open).setAutoCancel(true)
+            .setVisibility(Notification.VISIBILITY_PRIVATE).setPublicVersion(public)
+            .build()
+        nm.notify(LIVE_ALERT_NOTIFICATION_ID, n)
     }
 
     private var familyAlertSent = false
@@ -399,6 +447,8 @@ class CallGuardService : Service() {
         const val ACTION_TEST = "com.callguard.TEST"
         private const val CHANNEL = "callguard"
         private const val SUMMARY_CHANNEL = "callguard_summary"
+        private const val LIVE_CHANNEL = "callguard_live_alert"
+        private const val LIVE_ALERT_NOTIFICATION_ID = 5 // 1=ongoing, 2=summary, 3=incoming heads-up, 4=boot reminder (CallAlerts)
         private const val SUMMARY_NOTIFICATION_ID = 2
     }
 }

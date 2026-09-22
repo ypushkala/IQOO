@@ -38,6 +38,8 @@ class SetupActivity : Activity() {
     private companion object { const val REQ_PERMS = 1; const val REQ_CONTACTS = 2; const val REQ_ROLE = 3 }
 
     private class Step(val key: String, val title: String, val why: String, val done: Boolean, val action: String?, val extra: Pair<String, () -> Unit>? = null, val run: () -> Unit)
+    private var tts: android.speech.tts.TextToSpeech? = null
+    private var ttsReady = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,6 +52,18 @@ class SetupActivity : Activity() {
 
     override fun onResume() { super.onResume(); build() }
 
+    override fun onDestroy() { tts?.shutdown(); tts = null; super.onDestroy() }
+
+    private fun readTrustBodyAloud() {
+        if (tts == null) tts = android.speech.tts.TextToSpeech(this) { st -> ttsReady = st == android.speech.tts.TextToSpeech.SUCCESS; if (ttsReady) speakTrustBody() }
+        else if (ttsReady) speakTrustBody()
+    }
+
+    private fun speakTrustBody() {
+        tts?.language = com.callguard.alert.Alerter.localeOf(lang)
+        tts?.speak(UiStrings.get(Ui.TR_BODY, lang), android.speech.tts.TextToSpeech.QUEUE_FLUSH, null, "trust")
+    }
+
     private fun tap() { prefs.setupTaps = prefs.setupTaps + 1 }
     private fun action(label: String, big: Boolean = true, run: () -> Unit) = (if (big) theme.primary(label) { tap(); run() } else theme.button(label) { tap(); run() })
 
@@ -60,6 +74,7 @@ class SetupActivity : Activity() {
         val roleAvailable = runCatching { rm.isRoleAvailable(RoleManager.ROLE_CALL_SCREENING) }.getOrDefault(false)
         val list = ArrayList<Step>()
         list += Step("LANG", UiStrings.get(Ui.GR_LANG_TITLE, lang), UiStrings.get(Ui.GR_LANG_WHY, lang), prefs.languagesChosen, null, null, {})
+        list += Step("TRUST", UiStrings.get(Ui.TR_TITLE, lang), UiStrings.get(Ui.TR_BODY, lang), prefs.trustStepSeen, null, null, {})
         list += Step("PERMS", UiStrings.get(Ui.GR_PERMS_TITLE, lang), UiStrings.get(Ui.GR_PERMS_WHY, lang), permsOk,
             if (prefs.permsAsked >= 2) UiStrings.get(Ui.GR_PERMS_SETTINGS, lang) else HealthText.fix(HealthItem.MIC_PERMISSION, lang)) { askPermissions() }
         list += Step("ROLE", HealthText.name(HealthItem.CALLER_ID_ROLE, lang), HealthText.why(HealthItem.CALLER_ID_ROLE, lang),
@@ -98,8 +113,17 @@ class SetupActivity : Activity() {
         if (s.key == "LANG") {
             for (l in Lang.values()) root.addView(action((if (l == prefs.screenLanguage && prefs.languagesChosen) "✓  " else "") + UiStrings.name(l)) { prefs.setMyLanguage(l); build() })
         }
+        if (s.key == "TRUST") {
+            val verified = TrustCheck.noInternetVerified(this)
+            root.addView(theme.text(15f, bold = true).apply {
+                text = UiStrings.fmt(Ui.TR_CHECK_FMT, lang, UiStrings.get(if (verified) Ui.TR_CHECK_YES else Ui.TR_CHECK_NO, lang))
+                setTextColor(if (verified) theme.safe else theme.caution)
+            })
+            root.addView(theme.button(UiStrings.get(Ui.TR_READ_ALOUD, lang)) { readTrustBodyAloud() })
+            if (!prefs.trustStepSeen) root.addView(action(UiStrings.get(Ui.GR_NEXT, lang)) { prefs.trustStepSeen = true; build() })
+        }
         if (s.done) {
-            root.addView(theme.text(18f, bold = true).apply { text = UiStrings.get(Ui.GR_DONE_TICK, lang); setTextColor(android.graphics.Color.parseColor("#2E7D32")) })
+            root.addView(theme.text(18f, bold = true).apply { text = UiStrings.get(Ui.GR_DONE_TICK, lang); setTextColor(theme.safe) })
         } else if (s.action != null) {
             root.addView(action(s.action, run = s.run))
             s.extra?.let { (label, run) -> root.addView(action(label, big = false) { run(); build() }) }

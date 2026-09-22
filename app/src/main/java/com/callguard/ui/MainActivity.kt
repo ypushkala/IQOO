@@ -32,7 +32,6 @@ import com.callguard.core.RiskLevel
 import com.callguard.core.Tactic
 import com.callguard.caller.Blocklist
 import com.callguard.core.BlockPolicy
-import com.callguard.core.RecoveryPlan
 import com.callguard.core.Ui
 import com.callguard.core.UiStrings
 
@@ -70,6 +69,9 @@ class MainActivity : Activity() {
     private var feedbackGivenFor: Any? = null // the summary object already answered
     private lateinit var toggleLangButton: Button
     private var pendingAction: String? = null
+    private lateinit var unprotectedBanner: LinearLayout
+    private lateinit var unprotectedText: TextView
+    private lateinit var coachLine: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -97,6 +99,13 @@ class MainActivity : Activity() {
         healthBody = theme.text(16f).also(healthCard::addView)
         healthButton = theme.primary(HealthText.setupButton(lang)) { onHealthAction() }.also(healthCard::addView)
         root.addView(healthCard, LinearLayout.LayoutParams(-1, -2).also { it.topMargin = 16 })
+
+        // ---- unprotected-call nudge: quietly counted by the caller-ID service, shown here since it always runs ----
+        unprotectedBanner = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE; setPadding(20, 16, 20, 16); setBackgroundColor(theme.cardBg) }
+        unprotectedText = theme.text(14f).also(unprotectedBanner::addView)
+        unprotectedBanner.addView(theme.button(UiStrings.get(Ui.UNPROTECTED_DISMISS, lang)) { prefs.unprotectedCallLog = com.callguard.core.UnprotectedCallLog.clear(); renderUnprotectedNudge() })
+        root.addView(unprotectedBanner, LinearLayout.LayoutParams(-1, -2).also { it.topMargin = 12 })
+
         caller = theme.text(14f)
         // Live warning during a call: hidden while everything is calm.
         risk = theme.text(26f, bold = true).apply {
@@ -104,15 +113,16 @@ class MainActivity : Activity() {
             accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_ASSERTIVE // screen readers announce every change
         }.also(root::addView)
         alert = theme.text(16f, bold = true).also(root::addView)
+        // What to say, right under the warning — never spoken (keeps the TTS warning short), but visible for as long as the alert is.
+        coachLine = theme.text(14f).also(root::addView)
 
         // ---- last call (post-call summary): the one urgent action first, everything else under "More" ----
         summaryCard = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE; setPadding(16, 16, 16, 16); setBackgroundColor(theme.cardBg) }
         summaryCard.addView(theme.text(18f, bold = true).apply { text = UiStrings.get(Ui.HOME_LAST_CALL, lang); setTextColor(theme.accent) })
         summaryText = theme.text(15f).also(summaryCard::addView)
-        urgentButton = theme.primary(UiStrings.get(Ui.RECOVERY_BUTTON, lang)) {
-            val t = CallGuardState.state.summary?.findings?.map { it.tactic }?.toSet().orEmpty()
-            startActivity(Intent(this, RecoveryActivity::class.java).putExtra(RecoveryActivity.EXTRA_SITUATIONS, RecoveryPlan.likelySituations(t).map { it.name }.toTypedArray()))
-        }.also(summaryCard::addView)
+        // A MEDIUM/HIGH call opens the guided "what next" sequence (feedback, recovery, block, family) one step at a
+        // time, the same pattern as Get Ready, instead of dropping the person into a flat menu of buttons.
+        urgentButton = theme.primary(UiStrings.get(Ui.RECOVERY_BUTTON, lang)) { startActivity(Intent(this, FollowUpActivity::class.java)) }.also(summaryCard::addView)
         // "was this a scam?" (kept on this phone only)
         feedbackBox = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         feedbackBox.addView(theme.text(16f, bold = true).apply { text = UiStrings.get(Ui.FEEDBACK_Q, lang) })
@@ -136,8 +146,7 @@ class MainActivity : Activity() {
         summaryCard.addView(moreBox)
         root.addView(summaryCard, LinearLayout.LayoutParams(-1, -2).also { it.topMargin = 16 })
 
-        // ---- three places to go ----
-        root.addView(theme.button(UiStrings.get(Ui.HOME_SETTINGS, lang)) { startActivity(Intent(this, SettingsActivity::class.java)) })
+        // ---- quick actions (Home/History/Settings live in the nav bar below instead) ----
         root.addView(theme.button(UiStrings.get(Ui.GR_HELP_OTHERS, lang)) { startActivity(Intent(this, HelperActivity::class.java)) })
         root.addView(theme.button(UiStrings.get(Ui.HOME_PRACTICE, lang)) { startActivity(Intent(this, PracticeActivity::class.java)) })
 
@@ -154,12 +163,17 @@ class MainActivity : Activity() {
             root.addView(transcript); root.addView(techButton); root.addView(techBox)
         }
 
-        setContentView(page)
+        // A fixed bottom row (Home/History/Settings) sits outside the scrolling content, so it is always reachable.
+        val container = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        container.addView(page, LinearLayout.LayoutParams(-1, 0, 1f))
+        container.addView(NavBar.build(this, theme, lang, NavTab.HOME))
+        setContentView(container)
         applyTech()
         if (!prefs.setupOffered && !HealthCheck.evaluate(HealthProbe.inputs(this)).protectionOn) {
             prefs.setupOffered = true // "Get ready" opens once by itself; the status card keeps it one tap away
             startActivity(Intent(this, SetupActivity::class.java))
         }
+        suggestAccessibilityIfLargeText()
     }
 
     override fun onStart() {
@@ -167,6 +181,27 @@ class MainActivity : Activity() {
         if (prefs.screenLanguage != lang) { recreate(); return } // changed on the Languages page
         CallGuardState.listener = ::render
         render(CallGuardState.state)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        renderUnprotectedNudge() // written by the always-running caller-ID service, so re-read fresh each time this screen is seen
+    }
+
+    private fun renderUnprotectedNudge() {
+        val n = com.callguard.core.UnprotectedCallLog.count(prefs.unprotectedCallLog)
+        unprotectedBanner.visibility = if (n > 0 && !CallGuardState.state.monitoring) View.VISIBLE else View.GONE
+        if (n > 0) unprotectedText.text = UiStrings.fmt(Ui.UNPROTECTED_NUDGE_FMT, lang, n)
+    }
+
+    /** Suggested once, never forced: if the phone's own text is already large, large text probably helps here too. */
+    private fun suggestAccessibilityIfLargeText() {
+        if (theme.accessible || prefs.accessibilitySuggested) return
+        if (resources.configuration.fontScale < 1.25f) return
+        prefs.accessibilitySuggested = true
+        android.app.AlertDialog.Builder(this).setMessage(UiStrings.get(Ui.ACC_SUGGEST_FMT, lang))
+            .setPositiveButton(UiStrings.get(Ui.ACC_SUGGEST_YES, lang)) { _, _ -> prefs.accessibility = true; recreate() }
+            .setNegativeButton(UiStrings.get(Ui.ACC_SUGGEST_NO, lang), null).show()
     }
 
     override fun onStop() {
@@ -211,7 +246,7 @@ class MainActivity : Activity() {
     private fun renderHealth() {
         val r = HealthCheck.evaluate(HealthProbe.inputs(this))
         healthTitle.text = HealthText.cardTitle(r, lang)
-        healthTitle.setTextColor(if (r.protectionOn) Color.parseColor("#2E7D32") else Color.parseColor("#EF6C00"))
+        healthTitle.setTextColor(if (r.protectionOn) theme.safe else theme.caution)
         healthBody.text = HealthText.cardBody(r, lang)
         healthButton.visibility = if (r.protectionOn) View.GONE else View.VISIBLE
         healthButton.text = if (r.blocking == listOf(com.callguard.core.HealthItem.PROTECTION_RUNNING)) HealthText.fix(com.callguard.core.HealthItem.PROTECTION_RUNNING, lang) else HealthText.setupButton(lang)
@@ -220,6 +255,7 @@ class MainActivity : Activity() {
 
     private fun render(s: UiState) {
         renderHealth()
+        renderUnprotectedNudge()
         callState.text = "Call: ${s.callState}"
         captureState.text = "Capture: ${s.captureState}"
         gemma.text = s.gemma
@@ -229,14 +265,20 @@ class MainActivity : Activity() {
         val lvl = s.detection.level
         risk.text = UiStrings.risk(lvl, lang)
         risk.contentDescription = risk.text
-        risk.setBackgroundColor(when (lvl) { RiskLevel.HIGH -> Color.parseColor("#C62828"); RiskLevel.MEDIUM -> Color.parseColor("#EF6C00"); else -> Color.parseColor("#2E7D32") })
+        risk.setBackgroundColor(theme.statusColor(lvl))
         risk.setTextColor(if (lvl == RiskLevel.MEDIUM) Color.BLACK else Color.WHITE)
         val calm = lvl == RiskLevel.LOW && s.lastAlert.isEmpty() && (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) == 0
         risk.visibility = if (calm) View.GONE else View.VISIBLE
         alert.visibility = if (calm) View.GONE else View.VISIBLE
+        // A short canned line ("Suspicious call") plus, when we know it, the specific reason in the user's own language
+        // ("Because: asked for your OTP") — no raw English tactic codes or quoted transcript on screen.
         val line = UiStrings.alertLine(lvl, lang)
-        alert.text = if (line.isEmpty()) "" else "$line ${s.lastAlert}"
-        alert.setTextColor(if (theme.accessible) Color.parseColor("#FF8A80") else Color.RED)
+        val topTactic = s.alertTactics.firstOrNull()
+        val reason = com.callguard.core.AlertReason.lineForTactic(topTactic, lang)
+        alert.text = listOfNotNull(line.ifEmpty { null }, reason).joinToString(" ")
+        alert.setTextColor(theme.danger)
+        coachLine.text = com.callguard.core.CoachingLine.forTactics(s.alertTactics, lang)?.let { "${UiStrings.get(Ui.COACHING_LABEL, lang)}: $it" } ?: ""
+        coachLine.visibility = if (calm || coachLine.text.isEmpty()) View.GONE else View.VISIBLE
         transcript.text = s.transcript.ifEmpty { UiStrings.get(Ui.TRANSCRIPT_EMPTY, lang) }
         val sum = s.summary
         summaryCard.visibility = if (sum == null) View.GONE else View.VISIBLE

@@ -53,6 +53,20 @@
         </activity>
         <activity android:name=".ui.FamilyAlertActivity" android:exported="false" />
         <activity android:name=".ui.SetupActivity" android:exported="false" />
+        <activity android:name=".ui.HistoryActivity" android:exported="false" />
+        <activity android:name=".ui.MissedScamActivity" android:exported="false" />
+        <activity android:name=".ui.FollowUpActivity" android:exported="false" />
+        <!-- Ambient "am I protected" signal in the phone's own Quick Settings panel; needs no extra permission of ours. -->
+        <service
+            android:name=".tile.ProtectionTileService"
+            android:exported="true"
+            android:icon="@android:drawable/ic_lock_idle_lock"
+            android:label="CallGuard"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
         <service
             android:name=".caller.CallerIdService"
             android:exported="true"

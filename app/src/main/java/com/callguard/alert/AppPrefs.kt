@@ -118,4 +118,18 @@ class AppPrefs(context: Context) {
 
     fun addFamily(name: String?, number: String) { familyContacts = FamilyContacts.add(familyContacts, FamilyContact(name, number)) }
     fun removeFamily(c: FamilyContact) { familyContacts = FamilyContacts.remove(familyContacts, c) }
+
+    // ---- Wave 2: ambient trust, history, follow-through ----
+    /** Calls the caller-ID service saw from an unknown number while protection was off. */
+    var unprotectedCallLog: String
+        get() = prefs.getString("unprotected_calls", "") ?: ""; set(v) { prefs.edit().putString("unprotected_calls", v).apply() }
+    var callHistory: String
+        get() = prefs.getString("call_history", "") ?: ""; set(v) { prefs.edit().putString("call_history", v).apply() }
+    var missedScamReports: String
+        get() = prefs.getString("missed_scam_reports", "") ?: ""; set(v) { prefs.edit().putString("missed_scam_reports", v).apply() }
+    /** Accessibility mode was suggested once already (the phone's own large-text setting was on); do not nag again. */
+    var accessibilitySuggested: Boolean
+        get() = prefs.getBoolean("accessibility_suggested", false); set(v) { prefs.edit().putBoolean("accessibility_suggested", v).apply() }
+    var trustStepSeen: Boolean
+        get() = prefs.getBoolean("trust_step_seen", false); set(v) { prefs.edit().putBoolean("trust_step_seen", v).apply() }
 }

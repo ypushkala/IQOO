@@ -17,6 +17,17 @@ class UiTheme(private val ctx: Context, val accessible: Boolean) {
     val buttonBg get() = if (accessible) Color.parseColor("#FFEB3B") else Color.parseColor("#D8D8D8")
     val cardBg get() = if (accessible) Color.parseColor("#222222") else Color.parseColor("#ECEFF1")
 
+    // One definition of "safe / caution / danger" used everywhere (status card, risk banner, ticks, warning banners),
+    // instead of the same hex codes repeated per screen. Accessibility mode keeps the danger colour readable on black.
+    val safe get() = Color.parseColor("#2E7D32")
+    val caution get() = Color.parseColor("#EF6C00")
+    val danger get() = if (accessible) Color.parseColor("#FF8A80") else Color.parseColor("#C62828")
+    fun statusColor(level: com.callguard.core.RiskLevel) = when (level) {
+        com.callguard.core.RiskLevel.HIGH -> danger
+        com.callguard.core.RiskLevel.MEDIUM -> caution
+        com.callguard.core.RiskLevel.LOW -> safe
+    }
+
     fun text(sp: Float, bold: Boolean = false) = TextView(ctx).apply {
         setTextSize(TypedValue.COMPLEX_UNIT_SP, sp * scale)
         setTextColor(fg); setPadding(0, (8 * scale).toInt(), 0, (8 * scale).toInt())

@@ -5,6 +5,7 @@ import android.os.Looper
 import com.callguard.core.CallSummary
 import com.callguard.core.DetectionResult
 import com.callguard.core.Lang
+import com.callguard.core.Tactic
 
 /** Snapshot published by the service and rendered by the activity. Lives only in memory. */
 data class UiState(
@@ -14,6 +15,9 @@ data class UiState(
     val transcript: String = "",
     val detection: DetectionResult = DetectionResult.NONE,
     val lastAlert: String = "",
+    /** The tactic(s) behind the most recent alert, so the screen can show a short localized "why" and coaching line
+     *  in whatever language is active right now, without re-firing the alert. Cleared at the start of each call. */
+    val alertTactics: List<Tactic> = emptyList(),
     val gemma: String = "Gemma: off",
     val indic: String = "",
     val caller: String = "",

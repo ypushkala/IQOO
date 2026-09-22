@@ -51,6 +51,10 @@ class CallerIdService : CallScreeningService() {
             CallerRegistry.set(assessment)
             CallAlerts.notifyIncoming(this, assessment) // heads-up while it is still ringing, even with the app closed
             CallGuardState.update { it.copy(caller = assessment.summary) }
+            if (!CallGuardState.state.monitoring) { // quietly counted so Home can nudge "turn on now"; never the number itself
+                val p = com.callguard.alert.AppPrefs(this)
+                p.unprotectedCallLog = com.callguard.core.UnprotectedCallLog.record(p.unprotectedCallLog, System.currentTimeMillis())
+            }
             Log.i(TAG, "caller assessed: kind=${assessment.kind} score=${assessment.score} level=${assessment.level}") // never the number
         } catch (t: Throwable) {
             Log.w(TAG, "caller assessment failed: ${t.javaClass.simpleName}")

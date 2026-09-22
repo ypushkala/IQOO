@@ -30,7 +30,11 @@ class SettingsActivity : Activity() {
         prefs = AppPrefs(this)
         theme = UiTheme(this, prefs.accessibility)
         root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(theme.bg); setPadding(32, 48, 32, 32) }
-        setContentView(ScrollView(this).apply { setBackgroundColor(theme.bg); addView(root) })
+        val page = ScrollView(this).apply { setBackgroundColor(theme.bg); addView(root) }
+        val container = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        container.addView(page, LinearLayout.LayoutParams(-1, 0, 1f))
+        container.addView(NavBar.build(this, theme, lang, NavTab.SETTINGS))
+        setContentView(container)
         build()
     }
 
@@ -70,6 +74,8 @@ class SettingsActivity : Activity() {
         root.addView(theme.text(15f).apply { text = UiStrings.fmt(Ui.BLOCK_LIST_FMT, lang, blocks.size); setPadding(0, 24, 0, 0) })
         if (blocks.size > 0) root.addView(theme.button(UiStrings.get(Ui.BLOCK_CLEAR, lang)) { blocks.clear(); build() })
         root.addView(theme.text(18f, bold = true).apply { text = UiStrings.get(Ui.ST_SECTION_HELP, lang); setPadding(0, 32, 0, 0) })
+        root.addView(theme.button(UiStrings.get(Ui.HOME_HISTORY, lang)) { startActivity(Intent(this, HistoryActivity::class.java)) })
+        root.addView(theme.button(UiStrings.get(Ui.MISSED_BUTTON, lang)) { startActivity(Intent(this, MissedScamActivity::class.java)) })
         root.addView(theme.button(UiStrings.get(Ui.GR_HELP_OTHERS, lang)) { startActivity(Intent(this, HelperActivity::class.java)) })
         root.addView(theme.button(UiStrings.get(Ui.HOME_PRACTICE, lang)) { startActivity(Intent(this, PracticeActivity::class.java)) })
         root.addView(theme.button(UiStrings.get(Ui.HOME_TURN_OFF, lang)) { startService(Intent(this, CallGuardService::class.java).setAction(CallGuardService.ACTION_STOP)) })
