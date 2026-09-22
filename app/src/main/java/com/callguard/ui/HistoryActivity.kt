@@ -28,7 +28,7 @@ class HistoryActivity : Activity() {
         super.onCreate(savedInstanceState)
         prefs = AppPrefs(this)
         theme = UiTheme(this, prefs.accessibility)
-        root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(theme.bg); setPadding(32, 48, 32, 32) }.also { theme.avoidStatusBar(it) }
+        root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(theme.bg); setPadding(theme.dp(32), theme.dp(48), theme.dp(32), theme.dp(32)) }.also { theme.avoidStatusBar(it) }
         val page = ScrollView(this).apply { setBackgroundColor(theme.bg); addView(root) }
         val container = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         container.addView(page, LinearLayout.LayoutParams(-1, 0, 1f))

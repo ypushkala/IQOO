@@ -9,6 +9,7 @@ import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RippleDrawable
 import android.util.TypedValue
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
@@ -57,6 +58,27 @@ class UiTheme(private val ctx: Context, val accessible: Boolean) {
         setColor(cardBg)
         setStroke((1.5f * scale).toInt().coerceAtLeast(1), cardBorder)
     }
+
+    /** A card tinted a soft, translucent version of one colour, with a matching border — a quieter alternative
+     *  to a solid full-bleed fill for the handful of places a status needs to be more than a small dot (the
+     *  selected item in a list of options, the simulated warning in Practice). */
+    fun tintedCardDrawable(color: Int, radius: Float = 16f * scale): Drawable = GradientDrawable().apply {
+        shape = GradientDrawable.RECTANGLE
+        cornerRadius = radius
+        setColor(Color.argb(28, Color.red(color), Color.green(color), Color.blue(color)))
+        setStroke((1.5f * scale).toInt().coerceAtLeast(1), color)
+    }
+
+    /** A quiet "this one is chosen" surface for a list of options (a language, a scope): a soft tint of the
+     *  accent colour and an accent border. Never the loud filled `primary()` treatment — several of these can
+     *  sit on screen at once, and only one is ever the real selection, so the signal has to be a tint and a
+     *  small check mark, not a competing full-colour button. */
+    fun selectedCardDrawable(radius: Float = 16f * scale): Drawable = tintedCardDrawable(accent, radius)
+
+    // A translucent version of the accent colour for a Switch's ON/OFF track, so a switch reads as part of
+    // this palette instead of the OS default accent (usually teal or purple, depending on the phone).
+    val switchTrackOn get() = Color.argb(110, Color.red(accent), Color.green(accent), Color.blue(accent))
+    val switchTrackOff get() = Color.argb(90, Color.red(fgMuted), Color.green(fgMuted), Color.blue(fgMuted))
 
     private fun rippleBackground(fill: Int, radius: Float, borderColor: Int? = null): Drawable {
         val shape = GradientDrawable().apply {
@@ -125,6 +147,16 @@ class UiTheme(private val ctx: Context, val accessible: Boolean) {
 
     /** A plain tap ripple with no fill or border, for list rows that sit directly on the page background. */
     fun rowRipple(): Drawable = RippleDrawable(ColorStateList.valueOf(Color.argb(28, 0, 0, 0)), null, null)
+
+    /** A checkbox tinted to this palette instead of the OS default, for the small number of genuine
+     *  multi-select lists (recovery steps, missed-call tags) — same text size and colour as the rest of the page. */
+    fun checkBox(label: String, checked: Boolean = false, onToggle: (Boolean) -> Unit) = CheckBox(ctx).apply {
+        text = label; isChecked = checked
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f * scale); setTextColor(fg)
+        buttonTintList = ColorStateList.valueOf(accent)
+        setPadding(dp(4), dp(6), dp(4), dp(6))
+        setOnCheckedChangeListener { _, on -> onToggle(on) }
+    }
 
     internal fun tintedIcon(icon: Int, color: Int = fgMuted, size: Int = 22) = android.widget.ImageView(ctx).apply {
         setImageDrawable(ContextCompat.getDrawable(ctx, icon)?.mutate()?.apply { setTint(color) })

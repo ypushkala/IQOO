@@ -27,7 +27,7 @@ class LanguagesActivity : Activity() {
         super.onCreate(savedInstanceState)
         prefs = AppPrefs(this)
         theme = UiTheme(this, prefs.accessibility)
-        root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(theme.bg); setPadding(32, 48, 32, 32) }.also { theme.avoidStatusBar(it) }
+        root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(theme.bg); setPadding(theme.dp(32), theme.dp(48), theme.dp(32), theme.dp(32)) }.also { theme.avoidStatusBar(it) }
         setContentView(ScrollView(this).apply { setBackgroundColor(theme.bg); addView(root) })
         build()
     }
@@ -38,7 +38,7 @@ class LanguagesActivity : Activity() {
         root.removeAllViews()
         root.addView(theme.text(22f, bold = true).apply { text = UiStrings.get(Ui.MY_LANGUAGE, lang); setTextColor(theme.fg) })
         root.addView(theme.text(15f).apply { text = UiStrings.get(Ui.MY_LANGUAGE_HINT, lang) })
-        for (l in Lang.values()) root.addView(theme.button((if (l == prefs.screenLanguage) "✓  " else "") + UiStrings.name(l)) {
+        for (l in Lang.values()) root.addView(Rows.selectableRow(this, theme, UiStrings.name(l), selected = l == prefs.screenLanguage) {
             prefs.setMyLanguage(l); recreate()
         })
         root.addView(theme.button(UiStrings.get(if (advanced) Ui.ADVANCED_HIDE else Ui.ADVANCED_SHOW, lang)) { advanced = !advanced; build() })

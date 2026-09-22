@@ -37,7 +37,7 @@ class FollowUpActivity : Activity() {
         super.onCreate(savedInstanceState)
         prefs = AppPrefs(this)
         theme = UiTheme(this, prefs.accessibility)
-        root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(theme.bg); setPadding(32, 48, 32, 32) }.also { theme.avoidStatusBar(it) }
+        root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(theme.bg); setPadding(theme.dp(32), theme.dp(48), theme.dp(32), theme.dp(32)) }.also { theme.avoidStatusBar(it) }
         setContentView(ScrollView(this).apply { setBackgroundColor(theme.bg); addView(root) })
         build()
     }
@@ -64,7 +64,7 @@ class FollowUpActivity : Activity() {
 
     private fun feedbackStep(sum: com.callguard.core.CallSummary) {
         if (feedbackAnswered) { advance(); return }
-        root.addView(theme.text(20f, bold = true).apply { text = UiStrings.get(Ui.FU_FEEDBACK_STEP, lang); setPadding(0, 24, 0, 8) })
+        root.addView(theme.text(20f, bold = true).apply { text = UiStrings.get(Ui.FU_FEEDBACK_STEP, lang); setPadding(0, theme.dp(24), 0, theme.dp(8)) })
         fun answer(v: Verdict) { FeedbackStore(this).add(FeedbackEntry.from(sum, v, System.currentTimeMillis())); feedbackAnswered = true; advance() }
         root.addView(theme.primary(UiStrings.get(Ui.FEEDBACK_YES, lang)) { answer(Verdict.SCAM) })
         root.addView(theme.button(UiStrings.get(Ui.FEEDBACK_NO, lang)) { answer(Verdict.FINE) })
@@ -73,7 +73,7 @@ class FollowUpActivity : Activity() {
     }
 
     private fun recoveryStep(sum: com.callguard.core.CallSummary) {
-        root.addView(theme.text(20f, bold = true).apply { text = UiStrings.get(Ui.FU_RECOVERY_STEP, lang); setPadding(0, 24, 0, 8) })
+        root.addView(theme.text(20f, bold = true).apply { text = UiStrings.get(Ui.FU_RECOVERY_STEP, lang); setPadding(0, theme.dp(24), 0, theme.dp(8)) })
         root.addView(theme.text(15f).apply { text = UiStrings.get(Ui.FU_RECOVERY_WHY, lang) })
         val tactics = sum.findings.map { it.tactic }.toSet()
         root.addView(theme.primary(UiStrings.get(Ui.RECOVERY_BUTTON, lang)) {
@@ -86,7 +86,7 @@ class FollowUpActivity : Activity() {
     private fun blockStep(sum: com.callguard.core.CallSummary) {
         val h = sum.numberHash
         if (!BlockPolicy.canOfferBlock(h, null)) { advance(); return }
-        root.addView(theme.text(20f, bold = true).apply { text = UiStrings.get(Ui.FU_BLOCK_STEP, lang); setPadding(0, 24, 0, 8) })
+        root.addView(theme.text(20f, bold = true).apply { text = UiStrings.get(Ui.FU_BLOCK_STEP, lang); setPadding(0, theme.dp(24), 0, theme.dp(8)) })
         root.addView(theme.text(15f).apply { text = UiStrings.get(Ui.FU_BLOCK_WHY, lang) })
         val list = Blocklist(this)
         root.addView(theme.primary(UiStrings.get(if (h != null && list.contains(h)) Ui.UNBLOCK_NUMBER else Ui.BLOCK_NUMBER, lang)) {
@@ -98,7 +98,7 @@ class FollowUpActivity : Activity() {
 
     private fun familyStep(sum: com.callguard.core.CallSummary) {
         if (sum.level < RiskLevel.HIGH) { advance(); return } // not worth a family step below HIGH
-        root.addView(theme.text(20f, bold = true).apply { text = UiStrings.get(Ui.FU_FAMILY_STEP, lang); setPadding(0, 24, 0, 8) })
+        root.addView(theme.text(20f, bold = true).apply { text = UiStrings.get(Ui.FU_FAMILY_STEP, lang); setPadding(0, theme.dp(24), 0, theme.dp(8)) })
         root.addView(theme.text(15f).apply { text = UiStrings.get(Ui.FU_FAMILY_WHY, lang) })
         root.addView(theme.primary(UiStrings.get(Ui.FAMILY_ALERT, lang)) {
             val contacts = prefs.familyContacts
@@ -114,7 +114,7 @@ class FollowUpActivity : Activity() {
     }
 
     private fun finishScreen() {
-        root.addView(theme.text(20f, bold = true).apply { text = UiStrings.get(Ui.FU_DONE, lang); setPadding(0, 24, 0, 8) })
+        root.addView(theme.text(20f, bold = true).apply { text = UiStrings.get(Ui.FU_DONE, lang); setPadding(0, theme.dp(24), 0, theme.dp(8)) })
         root.addView(theme.primary(UiStrings.get(Ui.DONE, lang)) { finish() })
     }
 }

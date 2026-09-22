@@ -71,7 +71,7 @@ object UiStrings {
         Ui.NO_VOICE_FMT to t("No %s voice is installed on this phone", "इस फ़ोन में %s आवाज़ इंस्टॉल नहीं है", "ఈ ఫోన్‌లో %s స్వరం ఇన్‌స్టాల్ చేయలేదు"),
         Ui.GR_NEXT to t("Next", "आगे", "తర్వాత"),
         Ui.GR_BACK to t("Back", "पीछे", "వెనుకకు"),
-        Ui.GR_DONE_TICK to t("Done ✓", "हो गया ✓", "పూర్తయింది ✓"),
+        Ui.GR_DONE_TICK to t("Done", "हो गया", "పూర్తయింది"),
         Ui.GR_LANG_TITLE to t("Choose your language", "अपनी भाषा चुनें", "మీ భాషను ఎంచుకోండి"),
         Ui.GR_LANG_WHY to t("CallGuard will speak and write to you in this language.", "CallGuard आपसे इसी भाषा में बोलेगा और लिखेगा।", "CallGuard మీతో ఈ భాషలో మాట్లాడుతుంది, రాస్తుంది."),
         Ui.GR_PERMS_TITLE to t("Allow listening and warnings", "सुनने और चेतावनी की अनुमति दें", "వినడానికి, హెచ్చరించడానికి అనుమతించండి"),

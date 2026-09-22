@@ -37,7 +37,7 @@ class PracticeActivity : Activity() {
         prefs = AppPrefs(this)
         theme = UiTheme(this, prefs.accessibility)
         alerter = Alerter(this)
-        root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(theme.bg); setPadding(32, 48, 32, 32) }.also { theme.avoidStatusBar(it) }
+        root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(theme.bg); setPadding(theme.dp(32), theme.dp(48), theme.dp(32), theme.dp(32)) }.also { theme.avoidStatusBar(it) }
         setContentView(ScrollView(this).apply { setBackgroundColor(theme.bg); addView(root) })
         showPicker()
     }
@@ -54,10 +54,20 @@ class PracticeActivity : Activity() {
         root.removeAllViews()
         root.addView(theme.text(22f, bold = true).apply { text = UiStrings.get(Ui.PR_TITLE, lang); setTextColor(theme.fg) })
         root.addView(theme.text(15f).apply { text = UiStrings.get(Ui.PR_SAYS, lang) })
-        root.addView(theme.text(20f).apply { text = "“" + scenario.line(lang) + "”"; background = theme.cardDrawable(); setPadding(24, 24, 24, 24) })
+        root.addView(theme.text(20f).apply { text = "“" + scenario.line(lang) + "”"; background = theme.cardDrawable(); setPadding(theme.dp(24), theme.dp(24), theme.dp(24), theme.dp(24)) })
         val level = RiskEngine().evaluate(scenario.line(lang)).level.let { if (it < RiskLevel.MEDIUM) RiskLevel.MEDIUM else it }
-        val banner = theme.text(20f, bold = true).apply {
-            gravity = Gravity.CENTER; setPadding(16, 32, 16, 32); visibility = View.GONE; setTextColor(android.graphics.Color.WHITE); setBackgroundColor(theme.danger)
+        // The simulated warning: a risk-tinted bordered card with a small icon and bold coloured text — the
+        // same restrained "signal, not a banner" treatment as everywhere else, never a solid full-bleed fill.
+        val bannerText = theme.text(15.5f, bold = true).apply { setTextColor(theme.statusColor(level)); setPadding(0, 0, 0, 0) }
+        val banner = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            visibility = View.GONE
+            background = theme.tintedCardDrawable(theme.statusColor(level))
+            setPadding(theme.dp(16), theme.dp(14), theme.dp(16), theme.dp(14))
+            layoutParams = LinearLayout.LayoutParams(-1, -2).also { it.topMargin = theme.dp(16) }
+            addView(theme.tintedIcon(com.callguard.R.drawable.ic_alert_triangle, theme.statusColor(level), 20).apply { (layoutParams as LinearLayout.LayoutParams).marginEnd = theme.dp(10) })
+            addView(bannerText)
         }
         val note = theme.text(15f)
         val start = theme.primary(UiStrings.get(Ui.PR_START, lang), com.callguard.R.drawable.ic_play) {}
@@ -65,7 +75,7 @@ class PracticeActivity : Activity() {
             start.isEnabled = false
             note.text = UiStrings.get(Ui.PR_RINGING, lang)
             handler.postDelayed({
-                banner.text = UiStrings.get(Ui.PR_WARNING, lang); banner.visibility = View.VISIBLE
+                bannerText.text = UiStrings.get(Ui.PR_WARNING, lang); banner.visibility = View.VISIBLE
                 alerter?.warn(level, lang)
                 note.text = UiStrings.get(Ui.PR_DONE, lang)
                 prefs.practiceDone = true

@@ -45,9 +45,40 @@ object Rows {
             addView(Switch(ctx).apply {
                 isChecked = checked
                 thumbTintList = android.content.res.ColorStateList.valueOf(if (checked) theme.accent else Color.parseColor("#B9BFC6"))
+                trackTintList = android.content.res.ColorStateList.valueOf(if (checked) theme.switchTrackOn else theme.switchTrackOff)
                 setOnCheckedChangeListener { _, on -> onToggle(on) }
             })
         }
+
+    /** A single-choice option in a small list (a language, a scope): a plain bordered row, and — only for the
+     *  chosen one — a soft accent tint and a small check icon. Never the filled `primary()` button: several of
+     *  these sit on screen together, and only one is ever the actual selection. */
+    fun selectableRow(ctx: Context, theme: UiTheme, title: String, selected: Boolean, onClick: () -> Unit) = LinearLayout(ctx).apply {
+        orientation = LinearLayout.HORIZONTAL
+        gravity = Gravity.CENTER_VERTICAL
+        minimumHeight = theme.dp(52)
+        background = if (selected) theme.selectedCardDrawable() else theme.cardDrawable(16f * theme.scale)
+        setPadding(theme.dp(16), theme.dp(4), theme.dp(16), theme.dp(4))
+        layoutParams = LinearLayout.LayoutParams(-1, -2).also { it.topMargin = theme.dp(8) }
+        addView(theme.text(15.5f, bold = selected).apply {
+            text = title; setTextColor(if (selected) theme.accent else theme.fg)
+            layoutParams = LinearLayout.LayoutParams(0, -2, 1f); setPadding(0, 0, 0, 0)
+        })
+        if (selected) addView(theme.tintedIcon(R.drawable.ic_check_circle, theme.accent, 20))
+        foreground = theme.rowRipple(); isClickable = true; isFocusable = true
+        setOnClickListener { onClick() }
+        contentDescription = title
+    }
+
+    /** "This step is already done": a small check icon and a quiet word — not a large green checkmark line
+     *  competing with the step's own heading. */
+    fun doneIndicator(ctx: Context, theme: UiTheme, label: String) = LinearLayout(ctx).apply {
+        orientation = LinearLayout.HORIZONTAL
+        gravity = Gravity.CENTER_VERTICAL
+        setPadding(theme.dp(4), theme.dp(10), theme.dp(4), 0)
+        addView(theme.tintedIcon(R.drawable.ic_check_circle, theme.safe, 16).apply { (layoutParams as LinearLayout.LayoutParams).marginEnd = theme.dp(6) })
+        addView(theme.text(13.5f, bold = true).apply { text = label; setTextColor(theme.safe); setPadding(0, 0, 0, 0) })
+    }
 
     /** A fact about the system's current state — never tappable, never styled like an action. */
     fun statusRow(ctx: Context, theme: UiTheme, title: String, status: String, statusColor: Int = theme.fgMuted) =

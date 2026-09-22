@@ -2,7 +2,6 @@ package com.callguard.ui
 
 import android.app.Activity
 import android.os.Bundle
-import android.widget.CheckBox
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Toast
@@ -19,7 +18,7 @@ class MissedScamActivity : Activity() {
         val prefs = AppPrefs(this)
         val theme = UiTheme(this, prefs.accessibility)
         val lang = prefs.screenLanguage
-        val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(theme.bg); setPadding(32, 48, 32, 32) }.also { theme.avoidStatusBar(it) }
+        val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(theme.bg); setPadding(theme.dp(32), theme.dp(48), theme.dp(32), theme.dp(32)) }.also { theme.avoidStatusBar(it) }
         setContentView(ScrollView(this).apply { setBackgroundColor(theme.bg); addView(root) })
 
         root.addView(theme.text(22f, bold = true).apply { text = UiStrings.get(Ui.MISSED_TITLE, lang); setTextColor(theme.fg) })
@@ -30,10 +29,7 @@ class MissedScamActivity : Activity() {
             ReportTag.INSTALL_APP to Ui.MISSED_TAG_APP, ReportTag.MONEY_ASKED to Ui.MISSED_TAG_MONEY, ReportTag.OTHER to Ui.MISSED_TAG_OTHER,
         )
         val picked = HashSet<ReportTag>()
-        for ((tag, key) in tagLabels) root.addView(CheckBox(this).apply {
-            text = UiStrings.get(key, lang); textSize = 16f; setTextColor(theme.fg)
-            setOnCheckedChangeListener { _, on -> if (on) picked += tag else picked -= tag }
-        })
+        for ((tag, key) in tagLabels) root.addView(theme.checkBox(UiStrings.get(key, lang)) { on -> if (on) picked += tag else picked -= tag })
         root.addView(theme.primary(UiStrings.get(Ui.MISSED_SAVE, lang)) {
             prefs.missedScamReports = MissedScamReport.append(prefs.missedScamReports, MissedScamReport(System.currentTimeMillis(), picked.toSet()))
             Toast.makeText(this, UiStrings.get(Ui.MISSED_SAVED, lang), Toast.LENGTH_LONG).show()

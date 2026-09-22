@@ -45,7 +45,7 @@ class SetupActivity : Activity() {
         super.onCreate(savedInstanceState)
         prefs = AppPrefs(this)
         theme = UiTheme(this, prefs.accessibility)
-        root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(theme.bg); setPadding(32, 48, 32, 32) }.also { theme.avoidStatusBar(it) }
+        root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(theme.bg); setPadding(theme.dp(32), theme.dp(48), theme.dp(32), theme.dp(32)) }.also { theme.avoidStatusBar(it) }
         setContentView(ScrollView(this).apply { setBackgroundColor(theme.bg); addView(root) })
         if (prefs.setupStartedAt == 0L) { prefs.setupStartedAt = System.currentTimeMillis(); prefs.setupTaps = 0 }
     }
@@ -122,7 +122,7 @@ class SetupActivity : Activity() {
         root.addView(theme.text(27f, bold = true).apply { text = s.title; contentDescription = s.title; setPadding(theme.dp(4), theme.dp(16), theme.dp(4), theme.dp(6)) })
         root.addView(theme.text(16f, muted = true).apply { text = s.why; setPadding(theme.dp(4), 0, theme.dp(4), 0) })
         if (s.key == "LANG") {
-            for (l in Lang.values()) root.addView(action((if (l == prefs.screenLanguage && prefs.languagesChosen) "✓  " else "") + UiStrings.name(l)) { prefs.setMyLanguage(l); build() })
+            for (l in Lang.values()) root.addView(Rows.selectableRow(this, theme, UiStrings.name(l), selected = l == prefs.screenLanguage && prefs.languagesChosen) { prefs.setMyLanguage(l); build() })
         }
         if (s.key == "TRUST") {
             val verified = TrustCheck.noInternetVerified(this)
@@ -134,7 +134,7 @@ class SetupActivity : Activity() {
             if (!prefs.trustStepSeen) root.addView(action(UiStrings.get(Ui.GR_NEXT, lang)) { prefs.trustStepSeen = true; build() })
         }
         if (s.done) {
-            root.addView(theme.text(18f, bold = true).apply { text = UiStrings.get(Ui.GR_DONE_TICK, lang); setTextColor(theme.safe) })
+            root.addView(Rows.doneIndicator(this, theme, UiStrings.get(Ui.GR_DONE_TICK, lang)))
         } else if (s.action != null) {
             root.addView(action(s.action, run = s.run))
             s.extra?.let { (label, run) -> root.addView(action(label, big = false) { run(); build() }) }
@@ -152,7 +152,7 @@ class SetupActivity : Activity() {
     }
 
     private fun finishScreen(total: Int) {
-        root.addView(theme.text(26f, bold = true).apply { text = UiStrings.get(Ui.GR_FINISH_TITLE, lang); setPadding(0, 24, 0, 8) })
+        root.addView(theme.text(26f, bold = true).apply { text = UiStrings.get(Ui.GR_FINISH_TITLE, lang); setPadding(0, theme.dp(24), 0, theme.dp(8)) })
         root.addView(theme.text(17f).apply { text = UiStrings.get(Ui.GR_FINISH_BODY, lang) })
         root.addView(action(UiStrings.get(Ui.GR_FINISH, lang)) { recordRun(total); finish() })
         root.addView(theme.button(UiStrings.get(Ui.GR_HELP_OTHERS, lang)) { recordRun(total); startActivity(Intent(this, HelperActivity::class.java)) })

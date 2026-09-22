@@ -8,7 +8,6 @@ import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.text.InputType
-import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -33,7 +32,7 @@ class RecoveryActivity : Activity() {
         prefs = AppPrefs(this)
         theme = UiTheme(this, prefs.accessibility)
         intent.getStringArrayExtra(EXTRA_SITUATIONS)?.forEach { n -> runCatching { situations += Situation.valueOf(n) } }
-        root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(theme.bg); setPadding(32, 48, 32, 32) }.also { theme.avoidStatusBar(it) }
+        root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(theme.bg); setPadding(theme.dp(32), theme.dp(48), theme.dp(32), theme.dp(32)) }.also { theme.avoidStatusBar(it) }
         setContentView(ScrollView(this).apply { setBackgroundColor(theme.bg); addView(root) })
         build()
     }
@@ -57,19 +56,15 @@ class RecoveryActivity : Activity() {
                 }
             })
         }
-        root.addView(theme.text(17f, bold = true).apply { text = UiStrings.get(Ui.RECOVERY_WHAT, lang); setPadding(0, 24, 0, 8) })
-        for (s in Situation.values()) root.addView(CheckBox(this).apply {
-            text = RecoveryPlan.situationLabel(s, lang); textSize = 16f; setTextColor(theme.fg); isChecked = s in situations
-            setOnCheckedChangeListener { _, on -> if (on) situations += s else situations -= s; done.clear(); build() }
+        root.addView(theme.text(17f, bold = true).apply { text = UiStrings.get(Ui.RECOVERY_WHAT, lang); setPadding(0, theme.dp(24), 0, theme.dp(8)) })
+        for (s in Situation.values()) root.addView(theme.checkBox(RecoveryPlan.situationLabel(s, lang), checked = s in situations) { on ->
+            if (on) situations += s else situations -= s; done.clear(); build()
         })
         val bank = prefs.bankHelpline
         val steps = RecoveryPlan.steps(situations)
         steps.forEachIndexed { i, step ->
             val label = "${i + 1}. " + RecoveryPlan.stepText(step.id, lang, bank.isNotEmpty())
-            root.addView(CheckBox(this).apply {
-                text = label; textSize = 16f; setTextColor(theme.fg); isChecked = i in done
-                setOnCheckedChangeListener { _, on -> if (on) done += i else done -= i }
-            })
+            root.addView(theme.checkBox(label, checked = i in done) { on -> if (on) done += i else done -= i })
             when (step.action) {
                 StepAction.CALL_BANK -> if (bank.isNotEmpty()) root.addView(theme.button("${UiStrings.get(Ui.BANK_NUMBER_SET, lang)}: $bank") { dial(bank) })
                     else root.addView(theme.button(UiStrings.get(Ui.BANK_NUMBER, lang)) { askBank() })
